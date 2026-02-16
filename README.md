@@ -6,7 +6,7 @@
 
 1. Download the source code, including the /client, /server, /ollama, and docker-compose.yml file.
 
-2. From a terminal, cd into the /Novellier_v0.2 folder and run the container using docker compose:
+2. From a terminal, cd into the /Novellier-App folder and run the container using docker compose:
 
 #: docker-compose up --build
 
