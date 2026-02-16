@@ -25,5 +25,5 @@ P: admin
 This is a development model so it should run on most hardware but be ready to switch to a more powerful machine or a VM if the model doesn't run. 
 
 Screenshots
-
-(/client/public/Novellier-Demo.png)
+![](/client/public/Novellier-Demo.png)
+![](/client/public/Docker.jpeg)
