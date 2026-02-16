@@ -1,0 +1,41 @@
+version: '3.8'
+services:
+  # Express server that connects to ChromaDB and Ollama
+  server:
+    build: ./server
+    ports:
+      - "5001:5000"
+    environment:
+      - CHROMA_URL=http://chromadb:8000
+      - OLLAMA_URL=http://ollama:11434
+    depends_on:
+      - chromadb
+      - ollama
+    restart: unless-stopped
+
+  # Frontend React app that connects to the Express server
+  client:
+    build: ./client
+    ports:
+      - "3001:80"
+    stdin_open: true
+    tty: true
+    depends_on:
+      server:
+        condition: service_started
+    restart: unless-stopped
+
+  # ChromaDB vector database for storing and querying embeddings
+  chromadb:
+    image: chromadb/chroma:latest
+    ports:
+      - "8001:8000"
+
+  # Ollama LLM server for hosting language models
+  ollama:
+    image: ollama/ollama:latest
+    build: ./ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./ollama_data:/root/.ollama
