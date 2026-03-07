@@ -1,19 +1,29 @@
-version: '3.8'
+networks:
+  novellier-network:
+    driver: bridge
+
 services:
   # Express server that connects to ChromaDB and Ollama
   server:
     build: ./server
     ports:
       - "5001:5000"
+    networks:
+      - novellier-network
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock  # Required for container monitoring
     environment:
       - CHROMA_URL=http://chromadb:8000
       - OLLAMA_URL=http://ollama:11434
+      - MONGO_URL=${MONGO_URL}
+      - MONGO_DB=${MONGO_DB}
+      # TODO: AI Provider API Keys can go here if not in the .env file
     depends_on:
       - chromadb
       - ollama
+      - mongodb
     restart: unless-stopped
-
-  # Frontend React app that connects to the Express server
+# Frontend React app
   client:
     build: ./client
     ports:
@@ -25,17 +35,70 @@ services:
         condition: service_started
     restart: unless-stopped
 
-  # ChromaDB vector database for storing and querying embeddings
+  # ChromaDB vector database for storing/querying embeddings
   chromadb:
     image: chromadb/chroma:latest
     ports:
       - "8001:8000"
+    networks:
+      - novellier-network
+    restart: unless-stopped
 
   # Ollama LLM server for hosting language models
   ollama:
     image: ollama/ollama:latest
-    build: ./ollama
+    # build: ./ollama
     ports:
       - "11434:11434"
     volumes:
       - ./ollama_data:/root/.ollama
+      - ./ollama/pull-model.sh:/pull-model.sh
+    networks:
+      - novellier-network
+    restart: unless-stopped
+    entrypoint: ["bash", "/pull-model.sh"]  # Pull the model on startup, can be modified to pull specific models or handle updates
+  
+  # Mongo DB for storing user data, tokens, and stories
+  mongodb:
+    image: mongo:7
+    ports: 
+      - "27018:27017"
+    networks:
+      - novellier-network
+    volumes:
+      - novellier-mongo-data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin # Default admin credentials, should be changed in production
+      # Create a healthcheck
+
+  # Portainer container for grabbing the status of the containers. To be used in the Admin Panel.
+  portainer:
+    image: portainer/portainer-ce:latest
+    environment:
+      - INITIAL_ADMIN_USER=${PORTAINER_USERNAME:-admin}
+      - INITIAL_ADMIN_PASSWORD=${PORTAINER_PASSWORD:-portainer}
+    networks:
+      - novellier-network
+    ports:
+      - "9000:9000"
+
+# Mongo Express for managing the MongoDB instance through a web interface. Not needed but it'll be useful later.
+  mongo-express:
+    image: mongo-express:1.0.2-20
+    ports:
+      - "8081:8081"
+    networks:
+      - novellier-network
+    environment:
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=admin
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=admin
+      - ME_CONFIG_MONGODB_SERVER=mongodb
+    depends_on:
+      - mongodb
+    restart: unless-stopped
+
+volumes:
+  portainer_data:
+  novellier-mongo-data:
+  novellier-ollama-data:
