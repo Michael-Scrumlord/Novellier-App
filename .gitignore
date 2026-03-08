@@ -1,0 +1,18 @@
+# Ollama models and data
+ollama_data/
+
+# ChromaDB persistence
+chroma_data/
+*.db
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+env/
+
+# Environment variables (Sensitive Data!)
+.env
+
+# Docker
+.dockerignore

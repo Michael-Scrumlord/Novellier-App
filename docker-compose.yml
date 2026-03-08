@@ -13,11 +13,16 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock  # Required for container monitoring
     environment:
-      - CHROMA_URL=http://chromadb:8000
-      - OLLAMA_URL=http://ollama:11434
+      - CHROMA_URL=${CHROMA_URL}
+      - OLLAMA_URL=${OLLAMA_URL}
       - MONGO_URL=${MONGO_URL}
       - MONGO_DB=${MONGO_DB}
-      # TODO: AI Provider API Keys can go here if not in the .env file
+      - AI_PROVIDER=${AI_PROVIDER}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - JWT_SECRET=${JWT_SECRET} # Default secret, should be changed later
+      - COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME}
+      - COMPOSE_NETWORK=${COMPOSE_NETWORK}
     depends_on:
       chromadb:
         condition: service_healthy
@@ -49,7 +54,7 @@ services:
 
   # ChromaDB vector database for storing/querying embeddings
   chromadb:
-    image: chromadb/chroma:latest
+    image: chromadb/chroma:0.4.24
     ports:
       - "8001:8000"
     networks:
@@ -92,8 +97,8 @@ services:
     volumes:
       - novellier-mongo-data:/data/db
     environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: admin # Default admin credentials, should be changed in production
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=admin # Default admin credentials, should be changed in production
     healthcheck:
       test: ["CMD", "mongosh", "-u", "admin", "-p", "admin", "--authenticationDatabase", "admin", "--eval", "db.adminCommand('ping')"]
       interval: 10s

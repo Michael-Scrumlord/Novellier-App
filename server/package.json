@@ -4,7 +4,13 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest",
+    "test:unit": "vitest run __tests__/unit",
+    "test:smoke": "vitest run __tests__/smoke",
+    "test:integration": "vitest run __tests__/integration",
+    "test:all": "vitest run",
+    "test:watch": "vitest watch",
+    "test:coverage": "vitest run --coverage"
   },
   "keywords": [],
   "author": "",
@@ -13,6 +19,14 @@
   "dependencies": {
     "express": "^4.18.2",
     "cors": "^2.8.5",
-    "axios": "^1.7.9"
+    "axios": "^1.7.9",
+    "jsonwebtoken": "^9.0.2",
+    "mongodb": "^6.11.0",
+    "bcryptjs": "^2.4.3"
+  },
+  "devDependencies": {
+    "vitest": "^1.6.0",
+    "@vitest/ui": "^1.6.0",
+    "@vitest/coverage-v8": "^1.6.0"
   }
 }
