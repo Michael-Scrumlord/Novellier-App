@@ -1,6 +1,7 @@
-const express = require('express');
-const cors = require('cors');
-const aiController = require('./controllers/ai-controller');
+import express from 'express';
+import cors from 'cors';
+import * as aiController from './controllers/ai-controller.js';
+import { seedDefaultAdmin } from './src/config/seed.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -17,6 +18,15 @@ app.get('/health', (req, res) => {
     res.json({ status: 'ok', message: 'Server is running' });
 });
 
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+// Seed database, then start listening for traffic
+seedDefaultAdmin()
+    .then(() => {
+        app.listen(PORT, () => {
+            console.log(`Server is running on port ${PORT}`);
+            // TODO: Model warmup should go right here
+        });
+    })
+    .catch((error) => {
+        console.error('Failed to start the server:', error);
+        process.exit(1); // Fails if the database isn't ready
+    });
