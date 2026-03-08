@@ -24,6 +24,33 @@ P: admin
 [!CAUTION]
 This is a development model so it should run on most hardware but be ready to switch to a more powerful machine or a VM if the model doesn't run. 
 
+## Testing
+
+From the `server` folder:
+
+1. npm install
+2. npm run test:integration
+
+Optional test commands:
+
+1. npm test
+2. npm run test:all
+3. npm run test:coverage
+
+Current integration test coverage:
+- Infrastructure:
+	- `docker-compose.yml` includes core services (`server`, `client`, `mongodb`, `chromadb`, `ollama`, `portainer`)
+	- basic network/persistence config is present (`novellier-network`, bridge driver, Mongo and Ollama volume mappings)
+	- `.env.example` includes core variables (`MONGO_URL`, `MONGO_DB`, `CHROMA_URL`, `OLLAMA_URL`, `JWT_SECRET`)
+- Mongo persistence:
+	- `mongo-user-repo.js` ensures the user repo can be instantiated and is seeded with `seedDefaultAdmin`
+	- `mongo-story-repo.js` exports `getCollection`
+	- test database responds to `ping`
+
+Manual smoke checks:
+- `docker-compose up --build` starts all services
+- `docker-compose logs` is accessible
+
 Screenshots
 ![](/client/public/Novellier-Demo.png)
 ![](/client/public/Docker.jpeg)

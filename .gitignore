@@ -16,3 +16,9 @@ env/
 
 # Docker
 .dockerignore
+
+# Node modules
+node_modules/
+
+# Vitest Coverage
+coverage/
