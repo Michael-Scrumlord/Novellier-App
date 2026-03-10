@@ -22,3 +22,6 @@ node_modules/
 
 # Vitest Coverage
 coverage/
+
+# Future Maintenance Goals
+maintenance/

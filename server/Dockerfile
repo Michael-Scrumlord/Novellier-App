@@ -21,4 +21,4 @@ ENV PORT=5000
 EXPOSE 5000
 
 # Use dumb-init to handle signals properly
-CMD ["dumb-init", "node", "index.js"]
+CMD ["dumb-init", "node", "src/index.js"]

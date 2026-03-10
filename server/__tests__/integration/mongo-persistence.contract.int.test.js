@@ -56,7 +56,7 @@ describe('Mongo persistence', () => {
         client = new MongoClient(mongoUrl);
         await client.connect();
 
-        const db = client.db('novellier_basics');
+        const db = client.db('novellier_test');
         const ping = await db.command({ ping: 1 });
 
         expect(ping.ok).toBe(1);

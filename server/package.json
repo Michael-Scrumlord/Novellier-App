@@ -28,6 +28,7 @@
     "@vitest/coverage-v8": "^1.6.0",
     "@vitest/ui": "^1.6.0",
     "mongodb-memory-server": "^11.0.1",
+    "supertest": "^7.2.2",
     "vitest": "^1.6.0"
   }
 }
