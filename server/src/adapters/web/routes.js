@@ -2,11 +2,15 @@ import { Router } from 'express';
 import { asyncHandler
     //errorMiddleware 
 } from './error-handling.js';
+import { createAuthMiddleware, requireRole } from './auth-middleware.js';
 
 
 export const createRoutes = ({
     //aiController,
-    authController
+    authController,
+    userController,
+    authMiddleware
+
 }) => {
     const router = Router();
 
@@ -14,6 +18,13 @@ export const createRoutes = ({
 
     router.post('/api/auth/login', bind(authController, 'login'));
     router.post('/api/auth/logout', bind(authController, 'logout'));
+
+    // [SPRINT-1] S1-5: User Management Endpoints (admin only)
+    router.get('/api/users', authMiddleware, requireRole('admin'), bind(userController, 'listUsers'));
+    router.get('/api/users/:id', authMiddleware, requireRole('admin'), bind(userController, 'getUser'));
+    router.post('/api/users', authMiddleware, requireRole('admin'), bind(userController, 'createUser'));
+    router.put('/api/users/:id', authMiddleware, requireRole('admin'), bind(userController, 'updateUser'));
+    router.delete('/api/users/:id', authMiddleware, requireRole('admin'), bind(userController, 'deleteUser'));
 
     // TODO: Express error-handling middleware last
 
