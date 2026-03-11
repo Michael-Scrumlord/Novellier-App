@@ -38,19 +38,20 @@ export default class MongoStoryRepository {
 
         return { id: result.insertedId.toString(), title, content, sections, genre, templateId, userId, createdAt: now, updatedAt: now };
     }
-mapStory(story) {
-    return {
-      id: story._id.toString(),
-      title: story.title,
-      titleHtml: story.titleHtml,
-      chapterHeadingHtml: story.chapterHeadingHtml,
-      content: story.content,
-      sections: story.sections,
-      genre: story.genre,
-      templateId: story.templateId,
-      userId: story.userId,
-      createdAt: story.createdAt,
-      updatedAt: story.updatedAt
-    };
-  }
+    
+    mapStory(story) {
+        return {
+        id: story._id.toString(),
+        title: story.title,
+        titleHtml: story.titleHtml,
+        chapterHeadingHtml: story.chapterHeadingHtml,
+        content: story.content,
+        sections: story.sections,
+        genre: story.genre,
+        templateId: story.templateId,
+        userId: story.userId,
+        createdAt: story.createdAt,
+        updatedAt: story.updatedAt
+        };
+    }
 }

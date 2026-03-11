@@ -1,8 +1,11 @@
 import { MongoClient, ObjectId } from 'mongodb';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+import { IUserRepository } from '../../core/ports/IUserRepository.js';
+import MongoBaseRepository from './mongo-base-repo.js';
 
-export default class MongoUserRepository {
+export default class MongoUserRepository extends IUserRepository {
+    /*
     constructor({ mongoUrl, dbName, collectionName } = {}) {
         this.mongoUrl = mongoUrl || process.env.MONGO_URL || 'mongodb://mongodb:27017/novellier';
         this.dbName = dbName || process.env.MONGO_DB || 'novellier';
@@ -10,25 +13,34 @@ export default class MongoUserRepository {
         this.client = new MongoClient(this.mongoUrl);
         this.collection = null;
     }
+        */
+
+    constructor(config = {}) {
+        super();
+        this._base = new MongoBaseRepository({
+        mongoUrl: config.mongoUrl || 'mongodb://mongodb:27017/novellier',
+        dbName: config.dbName || 'novellier',
+        collectionName: config.collectionName || 'users'
+        });
+        this._indexed = false;
+    }
 
     async getCollection() {
-        if (!this.collection) {
-        await this.client.connect();
-        this.collection = this.client.db(this.dbName).collection(this.collectionName);
-        await this.collection.createIndex({ username: 1 }, { unique: true });
+        const collection = await this._base.getCollection();
+        if (!this._indexed) {
+        await collection.createIndex({ username: 1 }, { unique: true });
+        this._indexed = true;
         }
-
-        return this.collection;
+        return collection;
     }
 
     async createUser({ username, password, role = 'user', firstName = '', lastName = '', email = '', profilePicture = null, uuid }) {
         const collection = await this.getCollection();
-        const hashedPassword = await bcrypt.hash(password, 10);
         const now = new Date();
 
-            const result = await collection.insertOne({
+        const result = await collection.insertOne({
             username,
-            password: hashedPassword,
+            password,
             role,
             firstName,
             lastName,
@@ -37,7 +49,7 @@ export default class MongoUserRepository {
             uuid: uuid || crypto.randomUUID(),
             createdAt: now,
             updatedAt: now
-            });
+        });
 
         return this.getUserById(result.insertedId.toString());
     }
