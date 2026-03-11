@@ -40,3 +40,67 @@
 .read-the-docs {
   color: #888;
 }
+
+/* Light Theme (Light/Default) */
+body[data-theme='fall'] {
+  color: #4a3828;
+  background-color: #f9f6f0;
+  background-image: url('../public/AdobeStock_light.jpeg');
+  --ink: #4a3828;
+  --muted: rgba(74, 56, 40, 0.6);
+  --panel: rgba(255, 250, 245, 0.85);
+  --accent: #d87453;
+  --accent-ink: #fffaf5;
+  --accent-soft: rgba(216, 116, 83, 0.15);
+  --warm-cream: #fef9f1;
+  --warm-beige: #f5ebe0;
+  --terracotta: #d87453;
+}
+
+/* Dark Theme (Dark) */
+body[data-theme='night'] {
+  color: #f5ede0;
+  background-color: #151210;
+  background-image: url('../public/AdobeStock_dark.jpeg');
+  --ink: #f5ede0;
+  --muted: rgba(245, 237, 224, 0.65);
+  --panel: rgba(33, 28, 25, 0.95);
+  --accent: #f1a07c;
+  --accent-ink: #1f1713;
+  --accent-soft: rgba(241, 160, 124, 0.15);
+  --warm-cream: #1c1714;
+  --warm-beige: #231c19;
+  --terracotta: #f1a07c;
+}
+
+/* Ocean Theme (Bluish Green) */
+body[data-theme='ocean'] {
+  color: #0a2525;
+  background-color: #e8f4f4;
+  background-image: url('../public/blue.jpeg');
+  --ink: #0a2525;
+  --muted: rgba(10, 37, 37, 0.65);
+  --panel: rgba(215, 245, 245, 0.95);
+  --accent: #2aa4a4;
+  --accent-ink: #f0f8f8;
+  --accent-soft: rgba(42, 164, 164, 0.15);
+  --warm-cream: #d4f0f0;
+  --warm-beige: #c0ecec;
+  --terracotta: #2aa4a4;
+}
+
+/* Nature Theme (Foresty Green) */
+body[data-theme='nature'] {
+  color: #e8f0e8;
+  background-color: rgba(30, 50, 30, 0.95);
+  background-image: url('../public/nature.jpeg');
+  --ink: #e8f0e8;
+  --muted: rgba(232, 240, 232, 0.65);
+  --panel: rgba(45, 70, 50, 0.9);
+  --accent: #5ab96a;
+  --accent-ink: #f0f8f0;
+  --accent-soft: rgba(90, 185, 106, 0.15);
+  --warm-cream: #4a8a5a;
+  --warm-beige: #3a6a4a;
+  --terracotta: #5ab96a;
+}
