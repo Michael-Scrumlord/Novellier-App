@@ -12,22 +12,30 @@ const DEFAULT_PASS = "admin";
 function App() {
     // TODO: This should be factored out into a proper authentication system. I intend to use a Layered Architecture, so the authentication logic should be in its own service and repository layers.
     // For now, this is just a simple stub to gate access to the main app.
+    
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [credentials, setCredentials] = useState({ user: '', pass: '' });
     const [story, setStory] = useState('');
     const [aiResponse, setAiResponse] = useState('');
-
+    
+    const {
+        token, user, setUser, isAuthenticated,
+        authError, authLoading, handleLogin: rawLogin, handleLogout: rawLogout,
+        clearTokenOnFailure
+    } = useAuth();
+     
     const { theme, setTheme } = useTheme();
 
-
-    const handleLogin = (e) => {
-        e.preventDefault();
-        if (credentials.user === DEFAULT_USER && credentials.pass === DEFAULT_PASS) {
-            setIsLoggedIn(true);
-        } else {
-            alert("Invalid Credentials. Use admin/admin for testing.");
-        }
+    const handleLogin = async (credentials) => {
+        const msg = await rawLogin(credentials);
+        if (msg) setStatusMessage(msg);
     };
+
+    const handleLogout = async () => {
+        await rawLogout();
+        setStatusMessage('Logged out successfully.');
+    };
+
 
     const getAISuggestion = async () => {
         try {
@@ -38,8 +46,7 @@ function App() {
             setAiResponse('Error: Unable to get AI suggestion. ' + (error.message || 'Unknown error'));
         }
     };
-
-    if (!isLoggedIn) {
+    if (!isAuthenticated) {
       return (
         <div style={{ padding: '50px' }}>
             <h2>Login</h2>
@@ -51,11 +58,10 @@ function App() {
             </div>
         );
     }
-
     return (
         <div style={{ padding: '20px' }}>
-            <h1>Novellier - Demo</h1>
             <textarea rows="10" cols="50" value={story} onChange={e => setStory(e.target.value)} placeholder="Start writing your story..." />
+            <h1>Novellier - Demo</h1>
             <br />
             <button onClick={getAISuggestion}>Receive feedback from phi3</button>
             <div style={{ marginTop: '20px', padding: '10px' }}>
