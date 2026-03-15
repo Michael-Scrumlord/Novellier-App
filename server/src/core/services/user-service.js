@@ -56,7 +56,6 @@ export class UserService {
         if (!username || !password) {
         return null;
         }
-
         const user = await this.userRepository.getUserByUsernameWithPassword(username);
         if (!user) {
         return null;
@@ -70,9 +69,8 @@ export class UserService {
         const { password: _pw, ...userWithoutPassword } = user;
         return userWithoutPassword;
     }
-/*
     async listUsers() {
         return this.userRepository.listUsers();
     }
-        */
+        
 }

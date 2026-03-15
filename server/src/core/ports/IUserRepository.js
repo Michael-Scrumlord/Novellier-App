@@ -25,7 +25,6 @@ export class IUserRepository {
     async getUserByUsername(username) {
         throw new Error('Not implemented');
     }
-
     async getUserByUsernameWithPassword(username) {
         throw new Error('Not implemented');
     }
