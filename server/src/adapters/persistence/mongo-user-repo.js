@@ -65,6 +65,16 @@ export default class MongoUserRepository extends IUserRepository {
         const user = await collection.findOne({ username });
         return user ? this.mapUser(user) : null;
     }
+    
+    async getUserByUsernameWithPassword(username) {
+        const collection = await this.getCollection();
+        const user = await collection.findOne({ username });
+        if (!user) return null;
+        return {
+        ...this.mapUser(user),
+        password: user.password
+        };
+    }
 
     async listUsers() {
         const collection = await this.getCollection();

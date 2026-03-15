@@ -1,18 +1,28 @@
 # Novellier - AI Assisted Writing Platform
 
-## To Run: 
+## Novellier is a Containerized application and Docker is the preferred method to run this container.
 
-### Novellier is a Containerized application and Docker is the preferred method to run this container.
-
+### To Run:
 1. Download the source code, including the /client, /server, /ollama, and docker-compose.yml file.
 
 2. From a terminal, cd into the /Novellier-App folder and run the container using docker compose:
 
-#: docker-compose up --build
+#### For Prod:
+
+#: docker-compose --profile prod up --build
+
+#### For Dev:
+
+#: docker-compose --profile dev up --build
+
+#### For Both:
+
+#: docker compose --profile 
 
 The compose file will begin the services in the correct order and a development LLM will be downloaded to your computer.
 
 3. Open your browser to http://localhost:3001 to view the frontend.
+If you're using Dev, open the browser to http://localhost:5173.
 
 4. Login with Default Credentials.
 
