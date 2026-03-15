@@ -27,16 +27,17 @@ export default function Navbar({ statusMessage = '' }) {
             </button>
             <button
               className="nav__link-btn"
-              onClick={goWorkspace}
               type="button"
-              title={hasActiveStory ? 'View your workspace' : 'Select a story first'}
-              disabled={!hasActiveStory}
-              style={{
-                opacity: hasActiveStory ? 1 : 0.5,
-                cursor: hasActiveStory ? 'pointer' : 'not-allowed'
-              }}
+              title={'View your workspace'}
             >
               Workspace
+            </button>
+            <button
+              type="button"
+              className="btn btn--ghost nav__menu-item"
+              onClick={handleLogout}
+            >
+              Logout
             </button>
             {user?.role === 'admin' && (
               <button
