@@ -9,7 +9,7 @@ import ThemeSelector from './ThemeSelector.jsx';
 
 // ..Maybe rename in the future.
 
-export default function ProfilePage({ user, token, theme, onThemeChange, onClose, onProfileUpdate }) {
+export default function ProfilePageView({ user, token, theme, onThemeChange, onClose, onProfileUpdate }) {
     return (
         <div className="profile-page">
             <div className="profile-page__header">

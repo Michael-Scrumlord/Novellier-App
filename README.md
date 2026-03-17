@@ -61,6 +61,17 @@ Manual smoke checks:
 - `docker-compose up --build` starts all services
 - `docker-compose logs` is accessible
 
+## Database 
+
+The MongoDB instance is accessible using the Express server: http://localhost:8001
+
+### Removing the Mongo Data 
+![] This of course destroys the data and reinitializes from scratch. Use with Caution.
+
+
+#: docker compose down
+#: docker volume rm novellier-app_novellier-mongo-data novellier-mongo-data
+
 Screenshots
 ![](/client/public/Novellier-Demo.png)
 ![](/client/public/Docker.jpeg)
