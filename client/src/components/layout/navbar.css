@@ -6,8 +6,17 @@
     position: sticky;
     top: 0;
     backdrop-filter: blur(20px) saturate(180%);
-    background: var(--nav-bg);
     border-bottom: 1px solid var(--nav-border);
     z-index: 10;
+/*
+    
     box-shadow: var(--nav-shadow);
+    background: var(--nav-bg);
+*/
+
+    /* Going for a sleek fluid look*/
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+    background: rgba(255, 255, 255, 0.01);
 }
