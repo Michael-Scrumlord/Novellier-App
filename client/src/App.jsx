@@ -6,7 +6,8 @@ import { ModelProvider } from './contexts/ModelContext.jsx';
 import { RootLayout } from './layouts/RootLayout.jsx';
 import {
   LoginPage,
-  HomePage
+  HomePage,
+  ProfilePage
 } from './pages/index.js';
 import { AppRedirect, ProtectedLayout } from './routes/RouterHelpers.jsx';
 import './App.css';
@@ -19,9 +20,12 @@ function App() {
       <Route element={<RootLayout />}>
         <Route path="/" element={<AppRedirect />} />
         <Route path="/login" element={<LoginPage />} />
+
         <Route element={<ProtectedLayout />}>
-          <Route path="/home" element={<HomePage />} />
+            <Route path="/home" element={<HomePage />} />
+            <Route path="/profile" element={<ProfilePage />} />
         </Route>
+
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

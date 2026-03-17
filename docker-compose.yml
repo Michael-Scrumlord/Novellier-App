@@ -76,10 +76,6 @@ services:
     volumes:
       - ./client:/app
       - /app/node_modules
-    environment: 
-      - CHOKIDAR_USEPOLLING=true
-      - WATCHPACK_POLLING=true
-      - WDS_SOCKET_PORT=0
     stdin_open: true
     tty: true
     depends_on:
