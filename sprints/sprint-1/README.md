@@ -1,5 +1,11 @@
 # Sprint 1 Complete
 
+## Architecture
+
+
+
+## Demo
+
 ### Login Page
 ![](/client/public/Sprint1-Login.png)
 

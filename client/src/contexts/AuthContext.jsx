@@ -19,26 +19,24 @@ export function AuthProvider({ children }) {
         setAuthError('');
         setAuthLoading(true);
         try {
-        const data = await api.login(credentials);
-        setToken(data.token);
-        setUser(data.user);
-        localStorage.setItem(TOKEN_KEY, data.token);
-        localStorage.setItem(USER_KEY, JSON.stringify(data.user));
-        return 'Signed in successfully.';
+            const data = await api.login(credentials);
+            setToken(data.token);
+            setUser(data.user);
+            localStorage.setItem(TOKEN_KEY, data.token);
+            localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+            return 'Signed in successfully.';
         } catch {
-        setAuthError('Login failed. Check your credentials.');
-        return null;
+            setAuthError('Login failed. Check your credentials.');
+            return null;
         } finally {
-        setAuthLoading(false);
+            setAuthLoading(false);
         }
-    }, []); // Empty array: api is imported, and state setters are already stable in React
+    }, []);
 
     const handleLogout = useCallback(async () => {
-        // Note: If api.logout needs the strict current token, it's better to read it 
-        // directly from localStorage here to avoid adding 'token' as a dependency.
-        const currentToken = localStorage.getItem(TOKEN_KEY);
-        if (currentToken) {
-        await api.logout(currentToken).catch(() => null);
+            const currentToken = localStorage.getItem(TOKEN_KEY);
+            if (currentToken) {
+            await api.logout(currentToken).catch(() => null);
         }
         setToken(null);
         setUser(null);
@@ -51,26 +49,25 @@ export function AuthProvider({ children }) {
         localStorage.removeItem(TOKEN_KEY);
     }, []);
 
-    // Optional: A controlled way to update the user without exposing setUser
     const updateUser = useCallback((newData) => {
         setUser((prev) => {
-        const updated = { ...prev, ...newData };
-        localStorage.setItem(USER_KEY, JSON.stringify(updated));
-        return updated;
+            const updated = { ...prev, ...newData };
+            localStorage.setItem(USER_KEY, JSON.stringify(updated));
+            return updated;
         });
     }, []);
 
     const value = useMemo(
         () => ({
-        token,
-        user,
-        isAuthenticated,
-        authError,
-        authLoading,
-        handleLogin,
-        handleLogout,
-        clearTokenOnFailure,
-        updateUser 
+            token,
+            user,
+            isAuthenticated,
+            authError,
+            authLoading,
+            handleLogin,
+            handleLogout,
+            clearTokenOnFailure,
+            updateUser 
         }),
         [
         token, 
