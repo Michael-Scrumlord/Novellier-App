@@ -80,6 +80,10 @@
   padding: 0.25rem 0.5rem;
 }
 
+.nav__links:empty {
+  display: none;
+}
+
 .nav__actions {
   display: flex;
   align-items: center;
@@ -120,12 +124,6 @@
   flex-direction: column;
   justify-content: center;
   gap: 0.1rem; 
-}
-
-.nav__links {
-  display: flex;
-  gap: 1.5rem; 
-  align-items: center;
 }
 
 .nav__link-btn {
