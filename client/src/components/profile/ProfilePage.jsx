@@ -16,7 +16,7 @@ export default function ProfilePageView({ user, token, theme, onThemeChange, onC
               <h1>Your Profile</h1>
               <button 
                 type="button" 
-                className="btn btn--ghost"
+                className="btn btn--glass"
                 onClick={onClose}
                 title="Close profile"
               >
@@ -35,7 +35,7 @@ export default function ProfilePageView({ user, token, theme, onThemeChange, onC
 
               <div className="profile-page__sidebar">
                 <ThemeSelector 
-                  currentTheme={theme}
+                  currentTheme={theme || 'default'}
                   onThemeChange={onThemeChange}
                 />
               </div>

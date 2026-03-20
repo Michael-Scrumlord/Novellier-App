@@ -1,4 +1,3 @@
-import React from 'react';
 import { Navigate } from 'react-router-dom';
 import AuthPanel from '../components/auth/AuthPanel.jsx';
 import { useAuthContext } from '../contexts/AuthContext.jsx';

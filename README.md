@@ -3,21 +3,21 @@
 ## Novellier is a Containerized application and Docker is the preferred method to run this container.
 
 ### To Run:
-1. Download the source code, including the /client, /server, /ollama, and docker-compose.yml file.
+1. Download the source code, including the `/client`, `/server`, `/ollama`, and `docker-compose.yml` file.
 
-2. From a terminal, cd into the /Novellier-App folder and run the container using docker compose:
+2. From a terminal, cd into the `/Novellier-App` folder and run the container using docker compose:
 
 #### For Prod:
 
-#: docker-compose --profile prod up --build
+#: `docker-compose --profile prod up --build`
 
 #### For Dev:
 
-#: docker-compose --profile dev up --build
+#: `docker-compose --profile dev up --build`
 
 #### For Both:
 
-#: docker compose --profile 
+You don't need both.
 
 The compose file will begin the services in the correct order and a development LLM will be downloaded to your computer.
 
@@ -28,24 +28,26 @@ If you're using Dev, open the browser to http://localhost:5173.
 
 The logon credentials for testing are:
 
+```
 U: admin
 P: admin
+```
 
 [!CAUTION]
 This is a development model so it should run on most hardware but be ready to switch to a more powerful machine or a VM if the model doesn't run. 
 
 ## Testing
 
-From the `server` folder:
+From the `/server` folder:
 
-1. npm install
-2. npm run test:integration
+1. #: `npm install`
+2. #: `npm run test:integration`
 
 Optional test commands:
 
-1. npm test
-2. npm run test:all
-3. npm run test:coverage
+1. #: `npm test`
+2. #: `npm run test:all`
+3. #: `npm run test:coverage`
 
 Current integration test coverage:
 - Infrastructure:
@@ -63,15 +65,24 @@ Manual smoke checks:
 
 ## Database 
 
+### Administration
+
 The MongoDB instance is accessible using the Express server: http://localhost:8001
 
 ### Removing the Mongo Data 
-![] This of course destroys the data and reinitializes from scratch. Use with Caution.
+> [!CAUTION] 
+> This of course destroys the data and reinitializes from scratch. Use at your own risk!.
 
+_In fact, better to not use this at all unless something has gone horrendously awry and you don't need to retain any story, user, or other data._
 
-#: docker compose down
-#: docker volume rm novellier-app_novellier-mongo-data novellier-mongo-data
+#### Commands
+- #: `docker compose down`
+	- Spins down the containers
+- #: `docker volume rm novellier-app_novellier-mongo-data novellier-mongo-data`
+	- Removes the local Mongo Database. 
 
-Screenshots
+## Demo
 ![](/client/public/Novellier-Demo.png)
 ![](/client/public/Docker.jpeg)
+
+

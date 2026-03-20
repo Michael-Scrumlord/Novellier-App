@@ -14,12 +14,12 @@ export default class AuthController {
         const { username, password } = req.body || {};
 
         if (!username || !password) {
-        return res.status(400).json({ error: 'Username and password are required' });
+            return res.status(400).json({ error: 'Username and password are required' });
         }
 
         const user = await this.userService.verifyPassword(username, password);
         if (!user) {
-        return res.status(401).json({ error: 'Invalid credentials' });
+            return res.status(401).json({ error: 'Invalid credentials' });
         }
 
         const token = jwt.sign(
@@ -27,6 +27,11 @@ export default class AuthController {
         this.jwtSecret,
         { expiresIn: '2h' }
         );
+
+        console.log(`User ${user.username} logged in, token issued.
+            User ID: ${user.id}, Role: ${user.role}
+            Token: ${token}
+            `);
 
         return res.json({
         token,
