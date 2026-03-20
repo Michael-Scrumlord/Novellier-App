@@ -1,0 +1,87 @@
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0.6rem 1.4rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  font-family: inherit;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  max-width: 100%;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.btn--glass {
+  background: rgba(255, 255, 255, 0.08);
+  
+  backdrop-filter: blur(40px) saturate(150%);
+  -webkit-backdrop-filter: blur(40px) saturate(150%);
+
+  border: 1px solid var(--border-subtle);
+  box-shadow: 
+    var(--shadow-sm),
+    inset 0 1px 1px rgba(255, 255, 255, 0.4),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  
+  color: var(--ink);
+}
+
+body[data-theme='dark'] .btn--glass {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  box-shadow: 
+    var(--shadow-sm),
+    inset 0 1px 1px rgba(255, 255, 255, 0.15),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+}
+
+.btn--glass:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+  box-shadow: 
+    var(--shadow-md),
+    inset 0 1px 1px rgba(255, 255, 255, 0.6);
+}
+
+body[data-theme='dark'] .btn--glass:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.btn--primary {
+  background: var(--terracotta);
+  color: var(--accent-ink);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    var(--shadow-accent),
+    inset 0 1px 1px rgba(255, 255, 255, 0.3);
+}
+
+.btn--primary:hover {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+  box-shadow: 
+    0 8px 24px var(--accent-soft), /* Glows intensely on hover */
+    inset 0 1px 1px rgba(255, 255, 255, 0.4);
+}
+
+.btn--primary:active,
+.btn--glass:active,
+.btn--danger:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn--danger {
+  background: var(--accent-soft); 
+  color: var(--terracotta);
+  border: 1px solid var(--border-subtle);
+  backdrop-filter: blur(20px) saturate(120%);
+  -webkit-backdrop-filter: blur(20px) saturate(120%);
+}
+
+.btn--danger:hover {
+  background: transparent;
+  border-color: var(--terracotta);
+}

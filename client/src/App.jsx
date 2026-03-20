@@ -10,7 +10,9 @@ import {
   ProfilePage
 } from './pages/index.js';
 import { AppRedirect, ProtectedLayout } from './routes/RouterHelpers.jsx';
+import './styles/Buttons.css'
 import './App.css';
+import './styles/themes.css';
 
 const APP_PROVIDERS = [AuthProvider, ThemeProvider, ModelProvider];
 

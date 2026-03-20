@@ -9,7 +9,7 @@ export default function HomePage({ }) {
             </div>
             <div className="home-page__actions">
             <button
-                className="btn btn--ghost"
+                className="btn btn--glass"
                 type="button"
             >
                 Create Horror Example (demo feature)

@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { api } from '../../lib/api.js';
+import './Profile.css'
 
 export default function Profile ({ user, token, onProfileUpdate}) {
     const [profileData, setProfileData] = useState({
@@ -93,59 +94,65 @@ export default function Profile ({ user, token, onProfileUpdate}) {
         ? `${profileData.firstName} ${profileData.lastName}`.trim()
         : user?.username || 'User';
 
-    return (
-
+return (
         <section className="panel panel--profile">
-        <div className="panel__header">
-            <h3>Profile</h3>
-            {!isEditing && (
-            <button
-                type="button"
-                className="btn btn--primary"
-                onClick={() => setIsEditing(true)}
-            >
-                Edit Profile
-            </button>
-            )}
+        
+        {/* Unified Spatial Header */}
+        <div className="panel__header panel__header--spatial">
+            <div className="profile__picture-group">
+                <div className="profile__picture">
+                    {profileData.profilePicture ? (
+                        <img
+                            src={profileData.profilePicture}
+                            alt={displayName}
+                            className="profile__picture-img"
+                        />
+                    ) : (
+                        <span className="profile__picture-initials">{getInitials()}</span>
+                    )}
+                </div>
+                <div className="profile__title-group">
+                    <h3>{displayName}</h3>
+                    <p className="profile__subtitle">@{user?.username}</p>
+                </div>
+            </div>
+
+            <div className="profile__header-actions">
+                {isEditing ? (
+                    <button
+                        type="button"
+                        className="btn btn--glass btn--small"
+                        onClick={() => fileInputRef.current?.click()}
+                    >
+                        Change Picture
+                    </button>
+                ) : (
+                    <button
+                        type="button"
+                        className="btn btn--primary"
+                        onClick={() => setIsEditing(true)}
+                    >
+                        Edit Profile
+                    </button>
+                )}
+            </div>
         </div>
+
+        {/* Hidden File Input */}
+        <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={handlePictureSelect}
+        />
 
         {error && <div className="error-message">{error}</div>}
         {success && <div className="success-message">{success}</div>}
 
         <div className="profile__content">
-            <div className="profile__picture-section">
-            <div className="profile__picture">
-                {profileData.profilePicture ? (
-                <img
-                    src={profileData.profilePicture}
-                    alt={displayName}
-                    className="profile__picture-img"
-                />
-                ) : (
-                <span className="profile__picture-initials">{getInitials()}</span>
-                )}
-            </div>
-
-            {isEditing && (
-                <button
-                type="button"
-                className="btn btn--ghost btn--small"
-                onClick={() => fileInputRef.current?.click()}
-                >
-                Change Picture
-                </button>
-            )}
-            <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                hidden
-                onChange={handlePictureSelect}
-            />
-            </div>
-
             {isEditing ? (
-            <form onSubmit={handleSaveProfile} className="profile__form">
+                <form onSubmit={handleSaveProfile} className="profile__form">
                 <div className="form-group">
                 <label htmlFor="user-username">Username</label>
                 <input
@@ -226,7 +233,7 @@ export default function Profile ({ user, token, onProfileUpdate}) {
                 </button>
                 <button
                     type="button"
-                    className="btn btn--ghost"
+                    className="btn btn--glass"
                     onClick={handleCancel}
                     disabled={isSaving}
                 >
