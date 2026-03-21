@@ -1,0 +1,106 @@
+/* =========================================
+   Wizard Specifics (Template Cards)
+   ========================================= */
+
+.wizard-grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.wizard-grid--2col { grid-template-columns: 1fr 1fr; }
+.wizard-grid--3col { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+
+.spatial-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 1.5rem;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  
+  /* Liquid Glass Base */
+  background: var(--card-bg);
+  border: 1px solid var(--border-subtle);
+  border-radius: 20px;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.spatial-card:hover {
+  background: var(--panel);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-4px);
+  box-shadow: 
+    var(--shadow-md),
+    inset 0 1px 1px rgba(255, 255, 255, 0.3);
+}
+
+.spatial-card h3, .spatial-card h4 {
+  margin: 0 0 0.5rem 0;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.spatial-card p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.spatial-card--small {
+  padding: 1rem;
+  border-radius: 16px;
+}
+
+/* =========================================
+   Beat Editor (Step 3)
+   ========================================= */
+
+.beat-preview__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.beat-preview__header h3 {
+  margin: 0;
+  color: var(--ink);
+}
+
+/* The recessed container for the list of beats */
+.beat-editor-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 300px; /* Prevents the modal from getting too tall */
+  overflow-y: auto;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.03); /* Creates a recessed well */
+  border-radius: 16px;
+  border: 1px solid inset rgba(0,0,0,0.05);
+}
+
+body[data-theme='dark'] .beat-editor-list {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* Custom scrollbar for the beat editor */
+.beat-editor-list::-webkit-scrollbar { width: 6px; }
+.beat-editor-list::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 6px; }
+
+/* The row layout for each beat */
+.beat-editor__row {
+  display: grid;
+  grid-template-columns: 1fr 2fr auto; /* Title, Guidance, Remove Button */
+  gap: 1rem;
+  align-items: flex-start;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.beat-editor__row:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}

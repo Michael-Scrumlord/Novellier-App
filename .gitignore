@@ -25,3 +25,6 @@ coverage/
 
 # Future Maintenance Goals
 maintenance/
+
+# I guess my mac just does this
+.DS_Store

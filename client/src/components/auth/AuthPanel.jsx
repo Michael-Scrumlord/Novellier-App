@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import './Auth.css'; // Make sure Forms.css is imported globally in App.jsx
+import './Auth.css'; 
 
 export default function AuthPanel({ onSubmit, isLoading, error }) {
     const [credentials, setCredentials] = useState({ username: '', password: '' });
@@ -16,13 +16,12 @@ export default function AuthPanel({ onSubmit, isLoading, error }) {
 
     return (
         <section className="auth-layout" aria-live="polite">
-            <div className="auth__card">
+            <div className="auth__card ">
                 <h2>Welcome back</h2>
                 <p>Sign in to access your writing projects</p>
                 
                 <form onSubmit={handleSubmit} className="auth__form">
                     
-                    {/* Utilizing the global .form-group architecture */}
                     <div className="form-group">
                         <label htmlFor="auth-username">Username</label>
                         <input

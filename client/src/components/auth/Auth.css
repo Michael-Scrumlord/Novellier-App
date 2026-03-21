@@ -13,7 +13,7 @@
   max-width: 420px;
   padding: 3rem 2.5rem;
   
-  background: var(--panel);
+  background: var(--card-bg);
   backdrop-filter: blur(60px) saturate(180%);
   -webkit-backdrop-filter: blur(60px) saturate(180%);
   
