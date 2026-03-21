@@ -9,6 +9,7 @@ export const createRoutes = ({
     //aiController,
     authController,
     userController,
+    storyController,
     authMiddleware
 
 }) => {
@@ -25,6 +26,13 @@ export const createRoutes = ({
     router.post('/api/users', authMiddleware, requireRole('admin'), bind(userController, 'createUser'));
     router.put('/api/users/:id', authMiddleware, requireRole('admin'), bind(userController, 'updateUser'));
     router.delete('/api/users/:id', authMiddleware, requireRole('admin'), bind(userController, 'deleteUser'));
+
+    // [SPRINT-2] S2-1: Story Creation Endpoint
+    router.get('/api/stories', authMiddleware, bind(storyController, 'listStories'));
+    router.get('/api/stories/:id', authMiddleware, bind(storyController, 'getStory'));
+    router.post('/api/stories', authMiddleware, bind(storyController, 'createStory'));
+    router.put('/api/stories/:id', authMiddleware, bind(storyController, 'updateStory'));
+    router.delete('/api/stories/:id', authMiddleware, bind(storyController, 'deleteStory'));
 
     // TODO: Express error-handling middleware last
 

@@ -5,15 +5,6 @@ import { IUserRepository } from '../../core/ports/IUserRepository.js';
 import MongoBaseRepository from './mongo-base-repo.js';
 
 export default class MongoUserRepository extends IUserRepository {
-    /*
-    constructor({ mongoUrl, dbName, collectionName } = {}) {
-        this.mongoUrl = mongoUrl || process.env.MONGO_URL || 'mongodb://mongodb:27017/novellier';
-        this.dbName = dbName || process.env.MONGO_DB || 'novellier';
-        this.collectionName = collectionName || 'users';
-        this.client = new MongoClient(this.mongoUrl);
-        this.collection = null;
-    }
-        */
 
     constructor(config = {}) {
         super();
