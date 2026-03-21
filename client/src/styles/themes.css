@@ -53,7 +53,7 @@ body[data-theme='dark'] {
   --muted: rgba(255, 255, 255, 0.55);
   
   --panel: rgba(10, 10, 10, 0.4); 
-  --card-bg: rgba(15, 15, 15, 0.3); 
+  --card-bg: rgba(0, 0, 0, 0.45);  
   --nav-bg: rgba(10, 10, 10, 0.6);
   --input-bg: rgba(255, 255, 255, 0.06);
   --overlay: rgba(0, 0, 0, 0.6);
@@ -94,7 +94,7 @@ body[data-theme='ocean'] {
   --muted: rgba(224, 247, 247, 0.6);
   
   --panel: rgba(0, 20, 30, 0.3); 
-  --card-bg: rgba(0, 20, 30, 0.2); 
+  --card-bg: rgba(0, 5, 15, 0.45);
   --nav-bg: rgba(0, 15, 25, 0.5); 
   --input-bg: rgba(255, 255, 255, 0.05);
   --overlay: rgba(0, 15, 25, 0.7);
@@ -136,7 +136,7 @@ body[data-theme='nature'] {
   --muted: rgba(232, 245, 233, 0.6);
   
   --panel: rgba(10, 30, 15, 0.3); 
-  --card-bg: rgba(10, 30, 15, 0.2); 
+  --card-bg: rgba(0, 10, 5, 0.45); 
   --nav-bg: rgba(5, 20, 10, 0.5); 
   --input-bg: rgba(255, 255, 255, 0.05);
   --overlay: rgba(5, 20, 10, 0.7);

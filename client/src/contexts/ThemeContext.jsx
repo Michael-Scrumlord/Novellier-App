@@ -1,31 +1,33 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { THEME_KEY } from '../constants/storage.js';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const ThemeContext = createContext(null);
 
-function getInitialTheme() {
-    const stored = localStorage.getItem(THEME_KEY) || 'fall';
-    if (stored === 'light') return 'fall';
-    if (stored === 'dark') return 'night';
-    return stored;
-}
-
 export function ThemeProvider({ children }) {
-    const [theme, setTheme] = useState(getInitialTheme);
+  const [theme, setThemeState] = useState(() => {
+    const savedTheme = localStorage.getItem('novellier_theme');
+    return savedTheme || 'light'; 
+  });
 
-    useEffect(() => {
-        document.body.setAttribute('data-theme', theme);
-        localStorage.setItem(THEME_KEY, theme);
-    }, [theme]);
+  const setTheme = (newTheme) => {
+    setThemeState(newTheme);
+    localStorage.setItem('novellier_theme', newTheme);
+  };
 
-    const value = { theme, setTheme };
-    return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+  useEffect(() => {
+    document.body.setAttribute('data-theme', theme);
+  }, [theme]);
+
+  return (
+    <ThemeContext.Provider value={{ theme, setTheme }}>
+      {children}
+    </ThemeContext.Provider>
+  );
 }
 
 export function useThemeContext() {
-    const ctx = useContext(ThemeContext);
-    if (!ctx) {
-        throw new Error('useThemeContext must be used within ThemeProvider');
-    }
-    return ctx;
+  const context = useContext(ThemeContext);
+  if (!context) {
+    throw new Error('useThemeContext must be used within a ThemeProvider');
+  }
+  return context;
 }

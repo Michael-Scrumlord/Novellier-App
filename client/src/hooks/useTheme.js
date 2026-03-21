@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
 import { THEME_KEY } from '../constants/storage.js';
 
-// Persists theme selection in the localstorage.
-
 export function useTheme() {
     const [theme, setTheme] = useState(() => {
         const stored = localStorage.getItem(THEME_KEY) || 'light';

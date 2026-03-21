@@ -4,17 +4,15 @@
   top: calc(100% + 1rem); 
   right: 0;
   width: 280px; 
-  
-  
-  background: var(--panel);
-  backdrop-filter: blur(40px) saturate(150%);
-  -webkit-backdrop-filter: blur(40px) saturate(150%);
-  
+  background: var(--nav-bg);
+    backdrop-filter: blur(60px) saturate(200%);
+  -webkit-backdrop-filter: blur(60px) saturate(200%);
   
   border: 1px solid var(--border-subtle);
   border-radius: 20px; 
+  
   box-shadow: 
-    var(--shadow-md), 
+    0 12px 48px rgba(0, 0, 0, 0.3), 
     inset 0 1px 1px rgba(255, 255, 255, 0.4), 
     inset 0 0 0 1px rgba(255, 255, 255, 0.05);
     
@@ -23,6 +21,21 @@
   
   animation: spatialDrop 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
   transform-origin: top right;
+}
+
+body[data-theme='dark'] .nav__theme-menu,
+body[data-theme='dark'] .nav__user-menu {
+  background: rgba(25, 25, 25, 0.85); 
+}
+
+body[data-theme='ocean'] .nav__theme-menu,
+body[data-theme='ocean'] .nav__user-menu {
+  background: rgba(0, 25, 35, 0.85);
+}
+
+body[data-theme='nature'] .nav__theme-menu,
+body[data-theme='nature'] .nav__user-menu {
+  background: rgba(10, 35, 20, 0.85);
 }
 
 @keyframes spatialDrop {
