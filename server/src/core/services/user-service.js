@@ -36,6 +36,19 @@ export class UserService {
         return this.userRepository.deleteUser(id);
     }
 
+    async updateUser(id, updates) {
+        if (!id) {
+        throw new Error('id is required');
+        }
+
+        const processedUpdates = { ...updates };
+        if (processedUpdates.password) {
+        processedUpdates.password = await bcrypt.hash(processedUpdates.password, 10);
+        }
+
+        return this.userRepository.updateUser(id, processedUpdates);
+    }
+
     async getUserById(id) {
         if (!id) {
         throw new Error('id is required');
