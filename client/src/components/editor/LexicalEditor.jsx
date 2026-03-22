@@ -69,7 +69,15 @@ function SpatialToolbarPlugin() {
 
     return (
         <div className="editor-toolbar glass-card">
-          
+            {/* History Group */}
+            <div className="toolbar-group">
+                <button className="btn btn--glass btn--icon" onClick={() => editor.dispatchCommand(UNDO_COMMAND, undefined)} title="Undo">↺</button>
+                <button className="btn btn--glass btn--icon" onClick={() => editor.dispatchCommand(REDO_COMMAND, undefined)} title="Redo">↻</button>
+            </div>
+
+            <div className="toolbar-divider" />
+
+            {/* Typography Group */}
             <div className="toolbar-group">
               <select className="spatial-select spatial-select--small" onChange={(e) => formatBlock(e.target.value)} defaultValue="paragraph">
                 <option value="paragraph">Normal Text</option>
@@ -80,29 +88,36 @@ function SpatialToolbarPlugin() {
               
               <select className="spatial-select spatial-select--small" onChange={(e) => applyStyle('font-family', e.target.value)} defaultValue="inherit">
                 <option value="inherit">Default Font</option>
-                <option value="'Merriweather', serif">Merriweather (Serif)</option>
-                <option value="'Inter', sans-serif">Inter (Sans)</option>
-                <option value="monospace">Monospace</option>
+                <option value="Arial, Helvetica, sans-serif">Arial</option>
+                <option value="'Times New Roman', Times, serif">Times New Roman</option>
+                <option value="'Courier New', Courier, monospace">Courier New</option>
+                <option value="Georgia, serif">Georgia</option>
+                <option value="'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif">Trebuchet MS</option>
+                <option value="Impact, fantasy">Impact</option>
               </select>
 
               <select className="spatial-select spatial-select--small" onChange={(e) => applyStyle('font-size', e.target.value)} defaultValue="16px">
-                <option value="14px">Small</option>
-                <option value="16px">Normal</option>
-                <option value="20px">Large</option>
-                <option value="24px">Title</option>
+                <option value="12px">Small (12px)</option>
+                <option value="16px">Normal (16px)</option>
+                <option value="20px">Large (20px)</option>
+                <option value="24px">Title (24px)</option>
+                <option value="32px">Display (32px)</option>
               </select>
             </div>
 
             <div className="toolbar-divider" />
 
+            {/* Formatting Group */}
             <div className="toolbar-group">
                 <button className="btn btn--glass btn--icon" onClick={() => formatText('bold')} title="Bold">B</button>
                 <button className="btn btn--glass btn--icon" onClick={() => formatText('italic')} title="Italic" style={{fontStyle: 'italic'}}>I</button>
                 <button className="btn btn--glass btn--icon" onClick={() => formatText('underline')} title="Underline" style={{textDecoration: 'underline'}}>U</button>
+                <button className="btn btn--glass btn--icon" onClick={() => formatText('strikethrough')} title="Strikethrough" style={{textDecoration: 'line-through'}}>S</button>
             </div>
 
             <div className="toolbar-divider" />
 
+            {/* Color Group */}
             <div className="toolbar-group">
                 <label className="color-picker-wrapper" title="Text Color">
                     <span className="color-picker-icon">A</span>
@@ -116,9 +131,11 @@ function SpatialToolbarPlugin() {
 
             <div className="toolbar-divider" />
 
+            {/* Alignment Group */}
             <div className="toolbar-group">
               <button className="btn btn--glass btn--icon" onClick={() => formatAlign('left')} title="Align Left">⬚</button>
               <button className="btn btn--glass btn--icon" onClick={() => formatAlign('center')} title="Align Center">⬒</button>
+              <button className="btn btn--glass btn--icon" onClick={() => formatAlign('right')} title="Align Right">⬏</button>
               <button className="btn btn--glass btn--icon" onClick={() => editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined)} title="Bullet List">•</button>
             </div>
         </div>

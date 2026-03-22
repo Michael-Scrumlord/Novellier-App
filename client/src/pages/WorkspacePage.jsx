@@ -112,6 +112,7 @@ export function WorkspacePage() {
             {/* TODO: This is a little buggy.. */}
             {storyCtx.bookViewOpen && storyCtx.currentStory && storyCtx.sections.length > 0 && (
                 <PagedBookViewEditor
+                    storyCtx={storyCtx}
                     sections={storyCtx.sections}
                     storyTitle={storyCtx.currentStory.title}
                     storyTitleHtml={storyCtx.storyTitleHtml}
