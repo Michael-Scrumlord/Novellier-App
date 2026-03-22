@@ -32,4 +32,8 @@ export class IUserRepository {
     async listUsers() {
         throw new Error('Not implemented');
     }
+
+    async updateUser(id, updates) {
+        throw new Error('Not implemented');
+    }
 }

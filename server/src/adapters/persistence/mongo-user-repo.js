@@ -24,6 +24,29 @@ export default class MongoUserRepository extends IUserRepository {
         }
         return collection;
     }
+    async getUserById(id) {
+        const collection = await this.getCollection();
+        const user = await collection.findOne({ _id: new ObjectId(id) });
+        return user ? this.mapUser(user) : null;
+    }
+    
+    async updateUser(id, updates = {}) {
+        const collection = await this.getCollection();
+        const now = new Date();
+        const payload = {
+        ...(updates.username ? { username: updates.username } : {}),
+        ...(updates.password ? { password: updates.password } : {}),
+        ...(updates.role ? { role: updates.role } : {}),
+        ...(updates.firstName !== undefined ? { firstName: updates.firstName } : {}),
+        ...(updates.lastName !== undefined ? { lastName: updates.lastName } : {}),
+        ...(updates.email !== undefined ? { email: updates.email } : {}),
+        ...(updates.profilePicture !== undefined ? { profilePicture: updates.profilePicture } : {}),
+        updatedAt: now
+        };
+
+        await collection.updateOne({ _id: new ObjectId(id) }, { $set: payload });
+        return this.getUserById(id);
+    }
 
     async createUser({ username, password, role = 'user', firstName = '', lastName = '', email = '', profilePicture = null, uuid }) {
         const collection = await this.getCollection();
