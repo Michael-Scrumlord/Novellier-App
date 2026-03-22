@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { DEFAULT_SECTION } from '../../lib/storyTemplates.js';
+import { GENRE_OPTIONS } from '../../constants/genres.js';
 import './TemplateWizard.css';
 
 export default function TemplateWizard({ isOpen, templates, onClose, onCreate }) {
@@ -8,6 +9,7 @@ export default function TemplateWizard({ isOpen, templates, onClose, onCreate })
     const [selectedTemplateId, setSelectedTemplateId] = useState('');
     const [title, setTitle] = useState('Untitled draft');
     const [editableBeats, setEditableBeats] = useState([]);
+    const [customGenre, setCustomGenre] = useState('');
 
     const selectedTemplate = useMemo(
         () => templates.find((template) => template.id === selectedTemplateId),
@@ -20,6 +22,7 @@ export default function TemplateWizard({ isOpen, templates, onClose, onCreate })
         setUseTemplate(true);
         setSelectedTemplateId('');
         setTitle('Untitled draft');
+        setCustomGenre('');
         setEditableBeats([]);
         }
     }, [isOpen]);
@@ -86,7 +89,7 @@ export default function TemplateWizard({ isOpen, templates, onClose, onCreate })
         onCreate({
         title,
         templateId: useTemplate ? selectedTemplate?.id || null : null,
-        genre: useTemplate ? selectedTemplate?.genre || null : null,
+        genre: useTemplate ? (selectedTemplate?.genre || null) : (customGenre || null),
         sections
         });
         onClose();
@@ -156,7 +159,25 @@ export default function TemplateWizard({ isOpen, templates, onClose, onCreate })
                     onChange={(e) => setTitle(e.target.value)} 
                     autoFocus
                 />
-                </div>
+            </div>
+
+            {!useTemplate && (
+                    <div className="form-group">
+                        <label htmlFor="custom-genre">Genre</label>
+                        <select
+                            id="custom-genre"
+                            value={customGenre}
+                            onChange={(e) => setCustomGenre(e.target.value)}
+                            className="spatial-select"
+                            style={{ width: '100%', padding: '0.8rem 1rem', borderRadius: '12px', border: '1px solid var(--border-subtle)', background: 'rgba(0,0,0,0.05)', color: 'var(--ink)' }}
+                        >
+                            <option value="" disabled>Select a genre...</option>
+                            {GENRE_OPTIONS.map((g) => (
+                                <option key={g} value={g}>{g}</option>
+                            ))}
+                        </select>
+                    </div>
+                )}
                 
                 <div className="modal__divider" />
 

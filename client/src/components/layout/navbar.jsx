@@ -4,6 +4,7 @@ import { useAuthContext } from '../../contexts/AuthContext.jsx';
 import './Navbar.css';
 import './Dropdown.css';
 import '../../styles/Buttons.css';
+import logoMask from '../../../public/logo/mask.png'
 import { THEMES } from '../../constants/themes.js';
 import { useThemeContext } from '../../contexts/ThemeContext.jsx';
 
@@ -54,11 +55,26 @@ export default function Navbar({ statusMessage = '' }) {
 
   return (
     <header className="nav">
-      <div className="nav__brand">
-        <span className="nav__logo">N</span>
-        <div className="nav__brand-text">
-          <p className="nav__title">Novellier</p>
-          <p className="nav__subtitle">Writing Workspace</p>
+      <div 
+        className="nav__brand" 
+        onClick={() => navigate('/home')} 
+        style={{ cursor: 'pointer' }}
+        title="Go to Home"
+      >
+        <div className="nav__brand-lockup">
+          {/* The Icon */}
+          <div 
+            className="nav__logo-icon"
+            style={{ 
+              WebkitMaskImage: `url(${logoMask})`,
+              maskImage: `url(${logoMask})`
+            }}
+            aria-label="Novellier Logo"
+          />
+          {/* The Native Text */}
+          <div className="nav__logo-text">
+            NOVELLIER
+          </div>
         </div>
       </div>
 
