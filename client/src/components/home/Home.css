@@ -3,7 +3,6 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 2rem;
-  animation: spatialFadeIn 0.5s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
 }
 
 .home-page__header {

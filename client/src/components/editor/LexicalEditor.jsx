@@ -18,9 +18,10 @@ import { HeadingNode, QuoteNode, $createHeadingNode, $createQuoteNode } from '@l
 import { ListNode, ListItemNode, INSERT_ORDERED_LIST_COMMAND, INSERT_UNORDERED_LIST_COMMAND } from '@lexical/list';
 import { AutoLinkNode, LinkNode, TOGGLE_LINK_COMMAND } from '@lexical/link';
 import './LexicalEditor.css'; 
+import { EDITOR_FONTS, EDITOR_FONT_SIZES } from '../../constants/typography.js';
 
 const editorConfig = {
-    namespace: 'NovellierProfessionalEditor',
+    namespace: 'NovellierEditor',
     theme: {
         text: {
             bold: 'text-bold',
@@ -86,22 +87,18 @@ function SpatialToolbarPlugin() {
                 <option value="quote">Quote</option>
               </select>
               
+              {/* Font Family Dropdown */}
               <select className="spatial-select spatial-select--small" onChange={(e) => applyStyle('font-family', e.target.value)} defaultValue="inherit">
-                <option value="inherit">Default Font</option>
-                <option value="Arial, Helvetica, sans-serif">Arial</option>
-                <option value="'Times New Roman', Times, serif">Times New Roman</option>
-                <option value="'Courier New', Courier, monospace">Courier New</option>
-                <option value="Georgia, serif">Georgia</option>
-                <option value="'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif">Trebuchet MS</option>
-                <option value="Impact, fantasy">Impact</option>
+                {EDITOR_FONTS.map(font => (
+                  <option key={font.value} value={font.value}>{font.label}</option>
+                ))}
               </select>
 
+              {/* Font Size Dropdown */}
               <select className="spatial-select spatial-select--small" onChange={(e) => applyStyle('font-size', e.target.value)} defaultValue="16px">
-                <option value="12px">Small (12px)</option>
-                <option value="16px">Normal (16px)</option>
-                <option value="20px">Large (20px)</option>
-                <option value="24px">Title (24px)</option>
-                <option value="32px">Display (32px)</option>
+                {EDITOR_FONT_SIZES.map(size => (
+                  <option key={size.value} value={size.value}>{size.label}</option>
+                ))}
               </select>
             </div>
 

@@ -1,10 +1,6 @@
 import { useState, useEffect } from 'react';
 import './StorySettingsModal.css';
-
-const GENRE_OPTIONS = [
-    'Fantasy', 'Sci-Fi', 'Mystery', 'Romance', 'Thriller', 'Horror',
-    'Drama', 'Adventure', 'Historical', 'Literary', 'Comedy', 'Crime'
-];
+import { GENRE_OPTIONS } from '../../constants/genres.js';
 
 export default function StorySettingsModal({
     story,

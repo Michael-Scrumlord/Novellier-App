@@ -1,23 +1,10 @@
 import React, { useMemo } from 'react';
 import './Home.css';
 import '../../App.css';
+import { GENRE_MOTIFS } from '../../constants/genres.js';
 
 const getGenreMotif = (genre) => {
-    const motifs = {
-        'Fantasy': 'FY', 
-        'Sci-Fi': 'SF', 
-        'Mystery': 'MY', 
-        'Romance': 'RM',
-        'Thriller': 'TH', 
-        'Horror': 'HR', 
-        'Drama': 'DR', 
-        'Adventure': 'AD',
-        'Historical': 'HS', 
-        'Literary': 'LT', 
-        'Comedy': 'CM', 
-        'Crime': 'CR',
-    };
-    return motifs[genre] || '--'; 
+    return GENRE_MOTIFS[genre] || '--'; 
 };
 
 const getStoryProgress = (story) => {

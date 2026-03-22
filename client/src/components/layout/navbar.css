@@ -91,40 +91,64 @@
   padding: 0 0.75rem;
 }
 
-.nav__logo {
-  display: grid;
-  place-items: center;
-  width: auto;
-  height: auto;
-  border-radius: 20px;
-  background: linear-gradient(135deg, var(--terracotta) 0%, var(--accent-gradient-end) 100%);
-  color: var(--muted);
-  font-weight: 700;
-  box-shadow: var(--shadow-accent);
-}
-
-.nav__title {
-  font-size: 1.05rem;
-  font-weight: 600; 
-  margin: 0;
-  color: var(--ink);
-  line-height: 1.2; 
-}
-
-.nav__subtitle {
-  font-size: 0.75rem; 
-  font-weight: 500;
-  margin: 0; 
-  color: var(--muted);
-  line-height: 1.2;
-}
-
-.nav__brand-text {
+/* =========================================
+   Dynamic Logo Mask
+   ========================================= */
+.nav__brand-lockup {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 0.1rem; 
+  align-items: center;
+  gap: 0.75rem; /* Perfect spacing between icon and text */
 }
+
+/* The Sword/Key Stencil */
+.nav__logo-icon {
+  width: 28px; 
+  height: 28px; 
+  background-color: var(--ink); 
+  
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  
+  transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+  
+  /* THE MAGIC TRICK: Drop-shadow respects the mask shape, not the box! 
+     This makes the stencil look like it has physical depth embedded in the glass */
+  filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.15));
+}
+
+/* The Native Typography */
+.nav__logo-text {
+  /* THE UPGRADE: Swap this out for 'Cormorant Garamond' or 'Montserrat' to test them */
+  font-family: 'Cinzel', serif; 
+  
+  font-size: 1.35rem; /* Bumped up slightly for the new font proportions */
+  font-weight: 700;
+  
+  /* Wide tracking gives it that cinematic, premium layout */
+  letter-spacing: 3px;
+  color: var(--ink);
+  line-height: 1;
+  transition: color 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+
+  text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* The Hover State Physics */
+.nav__brand:hover .nav__logo-icon {
+  background-color: var(--terracotta);
+  transform: scale(1.05); /* Slight physical pop */
+  filter: drop-shadow(0px 4px 8px rgba(var(--accent-rgb), 0.3)); /* Glowing effect */
+}
+
+.nav__brand:hover .nav__logo-text {
+  color: var(--terracotta);
+}
+
 
 .nav__link-btn {
   position: relative;
