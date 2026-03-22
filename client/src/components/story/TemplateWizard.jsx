@@ -103,7 +103,7 @@ export default function TemplateWizard({ isOpen, templates, onClose, onCreate })
             <div className="modal__header">
             <div>
                 <h2>{step === 'start' ? 'Create a new story' : step === 'genre' ? 'Choose a Genre' : 'Finalize Details'}</h2>
-                <p className="muted-text" style={{margin: 0, fontSize: '0.9rem'}}>
+                <p className="modal-p" style={{margin: 0, fontSize: '0.9rem'}}>
                 {step === 'start' ? 'Start from a beat template or begin with a blank draft.' : 
                 step === 'genre' ? 'Select a structural foundation.' : 'Adjust your beats and title.'}
                 </p>
@@ -202,7 +202,7 @@ export default function TemplateWizard({ isOpen, templates, onClose, onCreate })
                 ) : (
                 <div className="beat-preview">
                     <h3>Blank draft</h3>
-                    <p className="muted-text">Starting with a single, unstructured drafting section.</p>
+                    <p className="modal-p">Starting with a single, unstructured drafting section.</p>
                 </div>
                 )}
             </div>
@@ -210,11 +210,11 @@ export default function TemplateWizard({ isOpen, templates, onClose, onCreate })
 
             <div className="modal__footer">
             {step !== 'start' && (
-                <button type="button" className="btn btn--ghost" style={{marginRight: 'auto'}} onClick={() => setStep(step === 'confirm' && useTemplate ? 'genre' : 'start')}>
+                <button type="button" className="btn btn--glass" style={{marginRight: 'auto'}} onClick={() => setStep(step === 'confirm' && useTemplate ? 'genre' : 'start')}>
                 ← Back
                 </button>
             )}
-            <button type="button" className="btn btn--ghost" onClick={onClose}>
+            <button type="button" className="btn btn--glass" onClick={onClose}>
                 Cancel
             </button>
             {step === 'confirm' && (

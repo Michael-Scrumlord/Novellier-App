@@ -4,6 +4,7 @@ import { AuthProvider } from './contexts/AuthContext.jsx';
 import { ThemeProvider } from './contexts/ThemeContext.jsx';
 import { ModelProvider } from './contexts/ModelContext.jsx';
 import { StoryProvider } from './contexts/StoryContext.jsx';
+import { AIProvider } from './contexts/AIContext.jsx';
 import { RootLayout } from './layouts/RootLayout.jsx';
 import {
   LoginPage,
@@ -17,7 +18,7 @@ import './styles/Buttons.css'
 import './App.css';
 import './styles/themes.css';
 
-const APP_PROVIDERS = [AuthProvider, ThemeProvider, ModelProvider, StoryProvider];
+const APP_PROVIDERS = [AuthProvider, ThemeProvider, ModelProvider, StoryProvider, AIProvider];
 
 function App() {
     const appRoutes = (
@@ -38,14 +39,14 @@ function App() {
         </Routes>
     );
 
-  return (
-    <BrowserRouter>
-      {APP_PROVIDERS.reduceRight(
-        (children, ProviderComponent) => <ProviderComponent>{children}</ProviderComponent>,
-        appRoutes
-      )}
-    </BrowserRouter>
-  );
+    return (
+        <BrowserRouter>
+            {APP_PROVIDERS.reduceRight(
+                (children, ProviderComponent) => <ProviderComponent>{children}</ProviderComponent>,
+                appRoutes
+            )}
+        </BrowserRouter>
+    );
 }
 
 export default App;
