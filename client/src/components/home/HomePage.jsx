@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import './Home.css';
+import '../../App.css';
 
 const getGenreMotif = (genre) => {
     const motifs = {
@@ -45,8 +46,8 @@ export default function HomePageView({
     }, [stories]);
 
     return (
-        <div className="home-page animate-fade-in-up">
-        <header className="home-page__header glass-card">
+        <div className="home-page">
+        <header className="home-page__header glass-card animate-fade-in-up">
             <div className="home-page__title-group">
             <h2 className="text-heading">Your Library</h2>
             <p className="text-muted">Manage your writing projects and track your progress</p>
@@ -62,8 +63,8 @@ export default function HomePageView({
         </header>
 
         {stories.length === 0 ? (
-            <div className="home-page__empty">
-            <div className="empty-state__glass">
+            <div className="home-page__empty" style={{ animationDelay: '0.1s' }}>
+            <div className="empty-state__glass ">
                 <div className="empty-state__icon">TODO: Book Icon</div>
                 <h3>No stories yet</h3>
                 <p>Start your first story to begin your writing journey</p>
@@ -75,7 +76,7 @@ export default function HomePageView({
             </div>
             </div>
         ) : (
-            <div className="home-page__grid">
+            <div className="home-page__grid" style={{ animationDelay: '0.1s' }}>
             {sortedStories.map((story) => {
                 const progress = getStoryProgress(story);
                 const status = getStatusText(progress);
