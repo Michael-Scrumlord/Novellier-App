@@ -10,6 +10,7 @@ export const createRoutes = ({
     authController,
     userController,
     storyController,
+    aiController,
     authMiddleware
 
 }) => {
@@ -33,6 +34,12 @@ export const createRoutes = ({
     router.post('/api/stories', authMiddleware, bind(storyController, 'createStory'));
     router.put('/api/stories/:id', authMiddleware, bind(storyController, 'updateStory'));
     router.delete('/api/stories/:id', authMiddleware, bind(storyController, 'deleteStory'));
+
+    // [SPRINT-3] S3-1: AI Integration Endpoints
+    router.post('/api/suggest', authMiddleware, aiController.getSuggestion.bind(aiController));
+    router.post('/api/ai/warmup', authMiddleware, bind(aiController, 'warmup'));
+    router.post('/api/ai/keepalive', authMiddleware, bind(aiController, 'keepAlive'));
+    router.post('/api/models/ensure', authMiddleware, bind(aiController, 'ensureModel'));
 
     // TODO: Express error-handling middleware last
 
