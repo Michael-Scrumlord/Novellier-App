@@ -21,7 +21,7 @@ import MongoStoryRepository from '../adapters/persistence/mongo-story-repo.js';
 import { StoryService } from '../core/services/story-service.js';
 
 // AI Stuff
-import { LocalLLMAdapter } from '../adapters/ai/local-llm-adapter.js';
+import LocalLLMAdapter from '../adapters/ai/local-llm-adapter.js';
 import { AISuggestionService } from '../core/services/ai-suggestion-service.js';
 import AIController from '../adapters/web/ai-controller.js';
 

@@ -6,13 +6,11 @@ import { createAuthMiddleware, requireRole } from './auth-middleware.js';
 
 
 export const createRoutes = ({
-    //aiController,
+    aiController,
     authController,
     userController,
     storyController,
-    aiController,
     authMiddleware
-
 }) => {
     const router = Router();
 
