@@ -4,8 +4,9 @@
   border-radius: 32px;
   
   background: var(--panel);
-  backdrop-filter: blur(60px) saturate(180%);
+  
   -webkit-backdrop-filter: blur(60px) saturate(180%);
+  backdrop-filter: blur(60px) saturate(180%);
   
   border: 1px solid var(--border-subtle);
   box-shadow: 
@@ -14,7 +15,9 @@
     inset 0 0 0 1px rgba(255, 255, 255, 0.05);
     
   animation: spatialFadeIn 0.5s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
-  overflow: hidden;
+  
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 
 @keyframes spatialFadeIn {
@@ -29,6 +32,7 @@
   padding: 1.5rem 2.5rem;
   border-bottom: 1px solid var(--border-subtle);
   background: rgba(255, 255, 255, 0.02);
+  border-radius: 32px 32px 0 0; 
 }
 
 .profile-page__header h1 {
@@ -237,7 +241,6 @@ body[data-theme='dark'] .form-group input {
   color: var(--muted);
 }
 
-/* Upgraded Spatial Profile Header */
 .panel__header--spatial {
   display: flex;
   justify-content: space-between;

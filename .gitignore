@@ -27,4 +27,4 @@ coverage/
 maintenance/
 
 # I guess my mac just does this
-.DS_Store
+*.DS_Store

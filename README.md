@@ -81,6 +81,16 @@ _In fact, better to not use this at all unless something has gone horrendously a
 - #: `docker volume rm novellier-app_novellier-mongo-data novellier-mongo-data`
 	- Removes the local Mongo Database. 
 
+### Troubleshooting
+
+If you find that docker dependencies aren't working properly and you've confirmed that both the 'npm install' is running like normal and the package.json has your required dependencies, then it might be time to nuke your volumes. 
+
+Run this command for dev:
+- #: `docker compose --profile dev down -v`
+- #: `docker compose --profile dev up --build`
+
+Try it out! It should work. 
+
 ## Demo
 ![](/client/public/Novellier-Demo.png)
 ![](/client/public/Docker.jpeg)
