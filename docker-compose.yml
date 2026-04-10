@@ -100,16 +100,30 @@ services:
 
   # Ollama LLM server for hosting language models
   ollama:
-    image: ollama/ollama:latest
+    image: ollama/ollama:0.20.3
     # build: ./ollama
+    entrypoint:
+      - /bin/sh
+      - -lc
+      - |
+        ollama serve &
+        echo "Waiting for Ollama server to start..."
+        until ollama list > /dev/null 2>&1; do sleep 1; done
+        echo "Pulling nomic-embed-text model..."
+        ollama pull nomic-embed-text
+        wait
     ports:
       - "11434:11434"
     volumes:
       - ./ollama_data:/root/.ollama
-      - ./ollama/pull-model.sh:/pull-model.sh
+      #- ./ollama/pull-model.sh:/pull-model.sh
     networks:
       - novellier-network
-    entrypoint: ["bash", "/pull-model.sh"]  # Pull the model on startup, can be modified to pull specific models or handle updates
+      # I see now why this was a bad idea
+      # For future reference modifying the "latest" image is not good practice and causes interference with other projects that use ollama. 
+      # Also, I should stop using latest images. 
+      # Going forward, the container does not decide the image, the server does.
+    # entrypoint: ["bash", "/pull-model.sh"]  # Pull the model on startup, can be modified to pull specific models or handle updates
     healthcheck:
       test: ["CMD-SHELL", "ollama list > /dev/null 2>&1 || exit 1"]
       interval: 10s
@@ -151,20 +165,18 @@ services:
       - "9000:9000"
 
 # Mongo Express for managing the MongoDB instance through a web interface. Not needed but it'll be useful later.
-  mongo-express:
-    image: mongo-express:1.0.2-20
-    ports:
-      - "8081:8081"
-    networks:
-      - novellier-network
-    environment:
-      - ME_CONFIG_MONGODB_ADMINUSERNAME=admin
-      - ME_CONFIG_MONGODB_ADMINPASSWORD=admin
-      - ME_CONFIG_MONGODB_SERVER=mongodb
-    depends_on:
-      mongodb:
-        condition: service_healthy
-    restart: unless-stopped
+#  mongo-express:
+#    image: mongo-express:1.0.2-20
+#    ports:
+#      - "8081:8081"
+#    networks:
+#      - novellier-network
+#    environment:
+#      - ME_CONFIG_MONGODB_URL=mongodb://admin:admin@mongodb:27017/novellier?authSource=admin
+#    depends_on:
+#      mongodb:
+#        condition: service_healthy
+#    restart: unless-stopped
 
 volumes:
   portainer_data:

@@ -54,7 +54,7 @@ export default function PromptPanel({
             </div>
 
             {!isCollapsed && (
-            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
               
               {/* Top Settings (Compact) */}
               <div style={{ padding: '0.75rem 1rem', display: 'flex', gap: '0.5rem', borderBottom: '1px solid var(--border-subtle)' }}>
@@ -78,7 +78,7 @@ export default function PromptPanel({
                 {/* AI Response Bubble */}
                 {(aiResponse || isSuggesting) && (
                     <div className="glass-card" style={{ padding: '1.2rem', borderRadius: '16px', background: 'var(--panel)', border: isSuggesting ? '1px solid var(--terracotta)' : '1px solid var(--border-subtle)' }}>
-                      <div style={{ fontSize: '0.95rem', lineHeight: 1.6, color: aiResponse ? 'var(--ink)' : 'var(--muted)' }}>
+                      <div style={{ fontSize: '0.95rem', lineHeight: 1.6, color: aiResponse ? 'var(--ink)' : 'var(--muted)', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
                           {isSuggesting && !aiResponse ? 'Analyzing structure...' : aiResponse}
                       </div>
                     </div>

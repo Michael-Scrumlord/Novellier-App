@@ -1,4 +1,5 @@
 import { IVectorRepository } from '../../core/ports/IVectorRepository.js';
+import { richTextToPlainText } from '../../utils/rich-text-to-plain-text.js';
 
 export default class ChromaVectorRepository extends IVectorRepository {
   constructor({ baseUrl = process.env.ChromaURL || 'http://chromadb:8000', collectionName = 'project_store', ollamaUrl = process.env.OllamaURL || 'http://ollama:11434', embeddingModel = 'nomic-embed-text', ragConfig } = {}) {
@@ -57,7 +58,14 @@ export default class ChromaVectorRepository extends IVectorRepository {
         const collectionId = await this.getCollectionId();
         const collectionUrl = `${this.baseUrl}/api/v1/collections/${collectionId}`;
 
-        const embedding = await this.generateEmbedding(text);
+        const normalizedQuery = richTextToPlainText(text);
+        if (!normalizedQuery) {
+            return options.storyId
+                ? 'No previous context found for this story.'
+                : 'No historical context has been found.';
+        }
+
+        const embedding = await this.generateEmbedding(normalizedQuery);
         const nResults = options.limit || this.ragConfig.contextChunks;
 
         const queryPayload = {
@@ -113,11 +121,16 @@ export default class ChromaVectorRepository extends IVectorRepository {
         return text.slice(0, maxChars) + '...';
     }
     async generateEmbedding(text) {
+        const normalizedText = richTextToPlainText(text);
+        if (!normalizedText) {
+            throw new Error('No text available for embedding');
+        }
+
         const data = await this._post(
         `${this.ollamaUrl}/api/embeddings`,
         {
             model: this.embeddingModel,
-            prompt: text
+            prompt: normalizedText
         },
         { signal: AbortSignal.timeout(30000) }
         );
@@ -144,12 +157,17 @@ export default class ChromaVectorRepository extends IVectorRepository {
         try {
         const collectionId = await this.getCollectionId();
         const collectionUrl = `${this.baseUrl}/api/v1/collections/${collectionId}`;
+        const normalizedText = richTextToPlainText(text);
 
-        const embedding = await this.generateEmbedding(text);
+        if (!normalizedText) {
+            return false;
+        }
 
-        await this._post(`${collectionUrl}/add`, {
+        const embedding = await this.generateEmbedding(normalizedText);
+
+        await this._post(`${collectionUrl}/upsert`, {
             ids: [id],
-            documents: [text],
+            documents: [normalizedText],
             embeddings: [embedding],
             metadatas: [{
             storyId: metadata.storyId || 'unknown',
