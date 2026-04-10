@@ -41,7 +41,12 @@ export class AISuggestionService {
             currentText: clippedStory,
             ragContext: relevantContext,
             feedbackFocus: options.feedbackType,
-            customPrompt: options.customPrompt
+            customPrompt: options.customPrompt,
+            currentChapterSummary: options.currentChapterSummary,
+            currentBeatSummary: options.currentBeatSummary,
+            storySummary: options.storySummary,
+            storySummaryShort: options.storySummaryShort,
+            storySummaryLong: options.storySummaryLong
         });
 
         // Send to external system (AI Port)

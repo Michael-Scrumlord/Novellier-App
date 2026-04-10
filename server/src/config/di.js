@@ -81,24 +81,34 @@ export const buildDependencies = () => {
         dbName: mongoDb
     });
 
-    const storyService = new StoryService({ 
-        storyRepository,
-        vectorRepository
-    });
-
-    // Sprint 3: AI Integration
-
     const localAdapter = new LocalLLMAdapter({ // AI Service adapter
         baseUrl: ollamaUrl,
         model: process.env.LLM_MODEL || 'phi3',
         temperature: Number(process.env.LLM_TEMPERATURE) || 0.8,
-        numPredict: Number(process.env.LLM_NUM_PREDICT) || 150,
+        numPredict: Number(process.env.LLM_NUM_PREDICT) || 1024,
         hardwareOptions: llmHardwareOptions
     });
 
+    const storyService = new StoryService({ 
+        storyRepository,
+        vectorRepository,
+        aiService: localAdapter,
+        summaryConfig: {
+            model: process.env.SUMMARY_MODEL || process.env.LLM_MODEL || 'phi3',
+            maxTokens: Number(process.env.SUMMARY_MAX_TOKENS) || 480,
+            maxSourceChars: Number(process.env.SUMMARY_MAX_SOURCE_CHARS) || 9000
+        }
+    });
+
+    // Sprint 3: AI Integration
+
     const suggestionService = new AISuggestionService({
         aiService: localAdapter,
-        vectorRepository
+        vectorRepository,
+        config: {
+            maxActiveChars: Number(process.env.AI_MAX_ACTIVE_CHARS) || 8000,
+            maxTokens: process.env.AI_MAX_TOKENS ? Number(process.env.AI_MAX_TOKENS) : null
+        }
     });
 
     const localModels = (process.env.LOCAL_MODELS || 'phi3,llama3.2,mistral').split(',');

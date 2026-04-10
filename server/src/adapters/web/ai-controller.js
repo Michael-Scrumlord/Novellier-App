@@ -59,7 +59,12 @@ export default class AIController {
         model,
         feedbackType,
         stream,
-        customPrompt
+        customPrompt,
+        currentChapterSummary,
+        currentBeatSummary,
+        storySummary,
+        storySummaryShort,
+        storySummaryLong
         } = req.body || {};
 
         if (!storyText) {
@@ -72,7 +77,12 @@ export default class AIController {
         storyId,
         model,
         feedbackType,
-        customPrompt
+        customPrompt,
+        currentChapterSummary,
+        currentBeatSummary,
+        storySummary,
+        storySummaryShort,
+        storySummaryLong
         });
 
     try {
@@ -150,7 +160,12 @@ export default class AIController {
         storyId,
         model,
         feedbackType,
-        customPrompt
+        customPrompt,
+        currentChapterSummary,
+        currentBeatSummary,
+        storySummary,
+        storySummaryShort,
+        storySummaryLong
     }) {
         return {
         sections,
@@ -158,7 +173,12 @@ export default class AIController {
         storyId,
         model,
         feedbackType,
-        customPrompt
+        customPrompt,
+        currentChapterSummary,
+        currentBeatSummary,
+        storySummary,
+        storySummaryShort,
+        storySummaryLong
         };
     }
 }
