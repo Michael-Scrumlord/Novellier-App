@@ -26,7 +26,7 @@ export default class MongoStoryRepository extends IStoryRepository {
         return collection;
     }
 
-    async createStory({ title, content, sections, genre, templateId, userId, titleHtml, chapterHeadingHtml }) {
+    async createStory({ title, content, sections, genre, templateId, userId, titleHtml, chapterHeadingHtml, storySummaryShort, storySummaryLong, chapterSummaries, beatSummaries, storySummary }) {
         const collection = await this.getCollection();
         const now = new Date();
         const result = await collection.insertOne({
@@ -35,6 +35,11 @@ export default class MongoStoryRepository extends IStoryRepository {
         chapterHeadingHtml,
         content,
         sections,
+        chapterSummaries: chapterSummaries || [],
+        beatSummaries: beatSummaries || [],
+        storySummary: storySummary || '',
+        storySummaryShort: storySummaryShort || '',
+        storySummaryLong: storySummaryLong || '',
         genre,
         templateId,
         userId,
@@ -49,13 +54,18 @@ export default class MongoStoryRepository extends IStoryRepository {
         const collection = await this.getCollection();
         const now = new Date();
         const payload = {
-        ...(updates.title ? { title: updates.title } : {}),
-        ...(updates.titleHtml ? { titleHtml: updates.titleHtml } : {}),
-        ...(updates.chapterHeadingHtml ? { chapterHeadingHtml: updates.chapterHeadingHtml } : {}),
-        ...(updates.content ? { content: updates.content } : {}),
-        ...(updates.sections ? { sections: updates.sections } : {}),
-        ...(updates.genre ? { genre: updates.genre } : {}),
-        ...(updates.templateId ? { templateId: updates.templateId } : {}),
+        ...(updates.title !== undefined ? { title: updates.title } : {}),
+        ...(updates.titleHtml !== undefined ? { titleHtml: updates.titleHtml } : {}),
+        ...(updates.chapterHeadingHtml !== undefined ? { chapterHeadingHtml: updates.chapterHeadingHtml } : {}),
+        ...(updates.content !== undefined ? { content: updates.content } : {}),
+        ...(updates.sections !== undefined ? { sections: updates.sections } : {}),
+        ...(updates.chapterSummaries !== undefined ? { chapterSummaries: updates.chapterSummaries } : {}),
+        ...(updates.beatSummaries !== undefined ? { beatSummaries: updates.beatSummaries } : {}),
+        ...(updates.storySummary !== undefined ? { storySummary: updates.storySummary } : {}),
+        ...(updates.storySummaryShort !== undefined ? { storySummaryShort: updates.storySummaryShort } : {}),
+        ...(updates.storySummaryLong !== undefined ? { storySummaryLong: updates.storySummaryLong } : {}),
+        ...(updates.genre !== undefined ? { genre: updates.genre } : {}),
+        ...(updates.templateId !== undefined ? { templateId: updates.templateId } : {}),
         updatedAt: now
         };
 
@@ -104,6 +114,11 @@ export default class MongoStoryRepository extends IStoryRepository {
         chapterHeadingHtml: story.chapterHeadingHtml,
         content: story.content,
         sections: story.sections,
+        chapterSummaries: story.chapterSummaries || [],
+        beatSummaries: story.beatSummaries || [],
+        storySummary: story.storySummary || '',
+        storySummaryShort: story.storySummaryShort || '',
+        storySummaryLong: story.storySummaryLong || '',
         genre: story.genre,
         templateId: story.templateId,
         userId: story.userId,
