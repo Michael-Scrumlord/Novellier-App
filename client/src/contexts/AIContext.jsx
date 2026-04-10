@@ -13,7 +13,7 @@ const AIContext = createContext(null);
 export function AIProvider({ children }) {
     const { token } = useAuthContext();
     const { selectedModel } = useModelContext();
-    const { sections, selectedBeatIndex, selectedChapterIndex, activeStoryId } = useStoryContext();
+    const { sections, selectedBeatIndex, selectedChapterIndex, activeStoryId, currentStory } = useStoryContext();
 
     const [aiResponse, setAiResponse] = useState('');
     const [isSuggesting, setIsSuggesting] = useState(false);
@@ -60,6 +60,22 @@ export function AIProvider({ children }) {
         }));
         
         const activeSectionIdx = getActiveSectionIndex(sections, selectedBeatIndex, selectedChapterIndex);
+        const activeSection = sections[activeSectionIdx];
+        const chapterSummaries = currentStory?.chapterSummaries || [];
+        const beatSummaries = currentStory?.beatSummaries || [];
+
+        const currentChapterSummary = activeSection
+            ? (
+                chapterSummaries.find((chapter) => chapter.sectionId && chapter.sectionId === activeSection.id)
+                || chapterSummaries.find((chapter) => chapter.beatKey === activeSection.beatKey && chapter.chapterTitle === activeSection.title)
+            )?.summary || ''
+            : '';
+
+        const currentBeatSummary = activeSection
+            ? (beatSummaries.find((beat) => beat.beatKey === activeSection.beatKey)?.summary || '')
+            : '';
+
+        const storySummary = currentStory?.storySummary || currentStory?.storySummaryShort || '';
 
         try {
             await api.getSuggestionStream(
@@ -69,6 +85,11 @@ export function AIProvider({ children }) {
                     model: selectedModel,
                     feedbackType,
                     customPrompt: aiPrompt,
+                    currentChapterSummary,
+                    currentBeatSummary,
+                    storySummary,
+                    storySummaryShort: currentStory?.storySummaryShort || '',
+                    storySummaryLong: currentStory?.storySummaryLong || '',
                     activeSectionIndex: activeSectionIdx,
                     storyText: plainSections[activeSectionIdx]?.content || '',
                     sections: plainSections,
@@ -90,7 +111,7 @@ export function AIProvider({ children }) {
             setIsSuggesting(false);
         }
     }, [
-        token, sections, selectedBeatIndex, selectedChapterIndex, activeStoryId,
+        token, sections, selectedBeatIndex, selectedChapterIndex, activeStoryId, currentStory,
         selectedModel, feedbackType, aiPrompt, isSuggesting, stopSuggestion
     ]);
 

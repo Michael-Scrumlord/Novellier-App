@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react';
 
+const BOTTOM_SCROLL_THRESHOLD = 24;
+
 export default function PromptPanel({
     aiCtx,
     modelCtx,
@@ -9,6 +11,7 @@ export default function PromptPanel({
     onSuggest
 }) {
     const responseRef = useRef(null);
+  const shouldAutoScrollRef = useRef(true);
 
     const { 
       aiPrompt, setAiPrompt, 
@@ -19,12 +22,25 @@ export default function PromptPanel({
     const { selectedModel, setModel, isModelPulling, modelPullStatus } = modelCtx;
 
     useEffect(() => {
-      if (!responseRef.current || isCollapsed) return;
+      if (!responseRef.current || isCollapsed || !shouldAutoScrollRef.current) return;
       const node = responseRef.current;
       requestAnimationFrame(() => {
         node.scrollTop = node.scrollHeight;
       });
-    }, [aiResponse, isSuggesting, isCollapsed]);
+    }, [aiResponse, isCollapsed]);
+
+    useEffect(() => {
+      if (!isSuggesting) return;
+      shouldAutoScrollRef.current = true;
+    }, [isSuggesting]);
+
+    const handleResponseScroll = () => {
+      const node = responseRef.current;
+      if (!node) return;
+
+      const distanceFromBottom = node.scrollHeight - node.scrollTop - node.clientHeight;
+      shouldAutoScrollRef.current = distanceFromBottom <= BOTTOM_SCROLL_THRESHOLD;
+    };
 
     return (
         <aside className={`spatial-sidebar ${isCollapsed ? 'spatial-sidebar--collapsed' : ''}`}>
@@ -67,7 +83,11 @@ export default function PromptPanel({
               </div>
 
               {/* Center Output */}
-              <div className={`ai-message-well ${isSuggesting ? 'ai-card--thinking' : ''}`} ref={responseRef}>
+              <div
+                className={`ai-message-well ${isSuggesting ? 'ai-card--thinking' : ''}`}
+                ref={responseRef}
+                onScroll={handleResponseScroll}
+              >
                 {/* Empty State */}
                 {!aiResponse && !isSuggesting && (
                     <div style={{textAlign: 'center', margin: 'auto', color: 'var(--muted)', fontSize: '0.9rem'}}>
