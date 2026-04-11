@@ -1,5 +1,5 @@
 export default class AIController {
-    constructor({ suggestionService, aiService }) {
+    constructor({ suggestionService, aiService, localModels }) {
         if (!suggestionService) {
         throw new Error('AIController requires suggestionService');
         }
@@ -9,6 +9,26 @@ export default class AIController {
 
         this.suggestionService = suggestionService;
         this.aiService = aiService;
+        this.localModels = Array.isArray(localModels) ? localModels : [];
+    }
+
+    async listModels(_req, res) {
+        const models = this.localModels
+            .map((model) => String(model || '').trim())
+            .filter(Boolean)
+            .map((model) => ({
+                value: model,
+                label: this._formatModelLabel(model)
+            }));
+
+        return res.json({
+            modelGroups: [
+                {
+                    label: 'Local Models (Ollama)',
+                    options: models
+                }
+            ]
+        });
     }
 
     async warmup(req, res) {
@@ -180,5 +200,13 @@ export default class AIController {
         storySummaryShort,
         storySummaryLong
         };
+    }
+
+    _formatModelLabel(model) {
+        return model
+            .split(':')[0]
+            .split('-')
+            .map((part) => (part ? part[0].toUpperCase() + part.slice(1) : part))
+            .join(' ');
     }
 }
