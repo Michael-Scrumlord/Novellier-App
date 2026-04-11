@@ -35,6 +35,7 @@ export const createRoutes = ({
 
     // [SPRINT-3] S3-1: AI Integration Endpoints
     router.post('/api/suggest', authMiddleware, aiController.getSuggestion.bind(aiController));
+    router.get('/api/models', authMiddleware, bind(aiController, 'listModels'));
     router.post('/api/ai/warmup', authMiddleware, bind(aiController, 'warmup'));
     router.post('/api/ai/keepalive', authMiddleware, bind(aiController, 'keepAlive'));
     router.post('/api/models/ensure', authMiddleware, bind(aiController, 'ensureModel'));

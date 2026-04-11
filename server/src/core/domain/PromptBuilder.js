@@ -33,6 +33,7 @@ export class PromptBuilder {
 
         if (chapterMemory) {
             promptParts.push(
+                'This is just a chapter summary, not the word for word text.',
                 '<current_chapter_summary>',
                 chapterMemory,
                 '</current_chapter_summary>',
@@ -42,6 +43,7 @@ export class PromptBuilder {
 
         if (beatMemory) {
             promptParts.push(
+                'This is just a beat summary, not the word for word text.',
                 '<current_beat_summary>',
                 beatMemory,
                 '</current_beat_summary>',
@@ -51,6 +53,7 @@ export class PromptBuilder {
 
         if (storyMemory) {
             promptParts.push(
+                'This is just a story summary, not the word for word text.',
                 '<story_summary>',
                 storyMemory,
                 '</story_summary>',
@@ -60,6 +63,7 @@ export class PromptBuilder {
 
         if (longMemory && !hasContext && !storyMemory) {
             promptParts.push(
+                'This is just a long story memory, not the word for word text.',
                 '<story_memory_long>',
                 longMemory,
                 '</story_memory_long>',

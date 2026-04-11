@@ -28,6 +28,10 @@ import AIController from '../adapters/web/ai-controller.js';
 // Chroma Stuff
 import ChromaVectorRepository from '../adapters/persistence/chroma-vector-repo.js';
 
+const phi3Model = process.env.BALANCED_MODEL || 'phi3'; // 2.2gb 128k context
+const creativeModel = process.env.CREATIVE_MODEL || 'phi4-mini:3.8b'; // 2.5gb 128k context
+const fastModel = process.env.FAST_MODEL || 'llama3.2'; // 2.0gb 128k context
+
 function buildRagConfig() {
     const totalMemoryGB = os.totalmem() / (1024 ** 3);
     const cpuCores = os.cpus().length;
@@ -83,7 +87,7 @@ export const buildDependencies = () => {
 
     const localAdapter = new LocalLLMAdapter({ // AI Service adapter
         baseUrl: ollamaUrl,
-        model: process.env.LLM_MODEL || 'phi3',
+        model: process.env.LLM_MODEL || phi3Model,
         temperature: Number(process.env.LLM_TEMPERATURE) || 0.8,
         numPredict: Number(process.env.LLM_NUM_PREDICT) || 1024,
         hardwareOptions: llmHardwareOptions
@@ -94,7 +98,7 @@ export const buildDependencies = () => {
         vectorRepository,
         aiService: localAdapter,
         summaryConfig: {
-            model: process.env.SUMMARY_MODEL || process.env.LLM_MODEL || 'phi3',
+            model: process.env.SUMMARY_MODEL || process.env.LLM_MODEL || phi3Model,
             maxTokens: Number(process.env.SUMMARY_MAX_TOKENS) || 480,
             maxSourceChars: Number(process.env.SUMMARY_MAX_SOURCE_CHARS) || 9000
         }
@@ -111,7 +115,10 @@ export const buildDependencies = () => {
         }
     });
 
-    const localModels = (process.env.LOCAL_MODELS || 'phi3,llama3.2,mistral').split(',');
+    const localModels = (process.env.LOCAL_MODELS || 'phi3,phi4-mini,llama3.2,mistral')
+        .split(',')
+        .map((model) => model.trim())
+        .filter(Boolean);
     
 
 
@@ -122,7 +129,11 @@ export const buildDependencies = () => {
     const authController = new AuthController({ userService, jwtSecret });
     const userController = new UserController({ userService });
     const storyController = new StoryController({ storyService });
-    const aiController = new AIController({ suggestionService: suggestionService, aiService: localAdapter });
+    const aiController = new AIController({
+        suggestionService: suggestionService,
+        aiService: localAdapter,
+        localModels
+    });
 
 
     // Auth middleware can be created here and injected into routes that require authentication
