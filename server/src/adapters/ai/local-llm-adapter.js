@@ -75,7 +75,7 @@ export default class LocalLLMAdapter extends IAIService {
 
     /**
      * Warm up the model by loading it into memory with a minimal prompt
-     * This significantly reduces first-request latency
+     * This significantly reduces the first-request latency
      */
     async warmupModel(modelName) {
         const model = modelName || this.model;
