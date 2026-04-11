@@ -19,6 +19,7 @@ export class StoryService {
 
 
     async createStory(data) {
+        const summaryModel = process.env.SUMMARY_MODEL || "gemma2:2b";
         const { title, content, sections } = data;
         if (!title) throw new Error('title is required');
 
@@ -30,7 +31,10 @@ export class StoryService {
         }
 
         const normalizedContent = hasContent ? content : this._buildContentFromSections(sections);
+        this.aiService.ensureModelAvailable(summaryModel);
+        this.aiService.warmupModel(summaryModel);
         const summaries = await this._buildStorySummaries(title, sections);
+
         
         const story = await this.storyRepository.createStory({
             ...data,
@@ -44,6 +48,7 @@ export class StoryService {
 
     async updateStory(id, updates, userId, userRole) {
         const story = await this._getStoryAndVerifyAccess(id, userId, userRole);
+        const summaryModel = process.env.SUMMARY_MODEL || "gemma2:2b";
 
         const updatePayload = { ...updates };
         
@@ -52,6 +57,9 @@ export class StoryService {
             } else if (Array.isArray(updates.sections)) {
                 updatePayload.content = this._buildContentFromSections(updates.sections);
             }
+
+            this.aiService.ensureModelAvailable(summaryModel);
+            this.aiService.warmupModel(summaryModel);
 
             if (Array.isArray(updates.sections)) {
                 const summaries = await this._buildStorySummaries(

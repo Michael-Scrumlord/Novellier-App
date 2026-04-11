@@ -35,6 +35,7 @@ export const api = {
         request(`/api/stories/${id}`, { method: 'PUT', token, body: payload }),
     deleteStory: (token, id) => request(`/api/stories/${id}`, { method: 'DELETE', token }),
     getSuggestion: (token, payload) => request('/api/suggest', { method: 'POST', token, body: payload }),
+    listModels: (token) => request('/api/models', { token }),
     getSuggestionStream: async (token, payload, onChunk, signal) => {
         const response = await fetch('/api/suggest', {
         method: 'POST',

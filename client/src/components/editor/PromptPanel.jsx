@@ -19,7 +19,9 @@ export default function PromptPanel({
       feedbackType, feedbackOptions, setFeedbackType 
     } = aiCtx;
     
-    const { selectedModel, setModel, isModelPulling, modelPullStatus } = modelCtx;
+    const { selectedModel, setModel, isModelPulling, modelPulling, modelPullStatus } = modelCtx;
+    const pulling = isModelPulling ?? modelPulling;
+    const modelOptions = (models || []).flatMap((group) => group.options || []);
 
     useEffect(() => {
       if (!responseRef.current || isCollapsed || !shouldAutoScrollRef.current) return;
@@ -62,8 +64,8 @@ export default function PromptPanel({
                   <div className="spatial-sidebar__title-group" style={{ textAlign: 'right' }}>
                       <h3 className="text-heading" style={{fontSize: '1rem'}}>AI Copilot</h3>
                       <span className="text-muted" style={{fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.3rem', justifyContent: 'flex-end'}}>
-                          {isModelPulling ? modelPullStatus : selectedModel.split(':')[0]}
-                          <div style={{width: '6px', height: '6px', borderRadius: '50%', background: isModelPulling ? 'var(--muted)' : 'var(--terracotta)'}} />
+                          {pulling ? modelPullStatus : (selectedModel || '').split(':')[0]}
+                          <div style={{width: '6px', height: '6px', borderRadius: '50%', background: pulling ? 'var(--muted)' : 'var(--terracotta)'}} />
                       </span>
                   </div>
                 )}
@@ -78,7 +80,7 @@ export default function PromptPanel({
                   {feedbackOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                 </select>
                 <select className="spatial-select spatial-select--small" style={{flex: 1}} value={selectedModel} onChange={(e) => setModel(e.target.value)}>
-                  {models.flatMap(g => g.options).map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                  {modelOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                 </select>
               </div>
 

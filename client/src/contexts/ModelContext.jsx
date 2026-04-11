@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { api } from '../lib/api.js';
+import { MODEL_OPTIONS } from '../constants/models.js';
 import { MODEL_KEY } from '../constants/storage.js';
 import { useAuthContext } from './AuthContext.jsx';
 
@@ -14,6 +15,33 @@ export function ModelProvider({ children }) {
     const [selectedModel, setSelectedModel] = useState(getInitialModel);
     const [modelPulling, setModelPulling] = useState(false);
     const [modelPullStatus, setModelPullStatus] = useState('');
+    const [availableModels, setAvailableModels] = useState(MODEL_OPTIONS);
+
+    useEffect(() => {
+        if (!token) return;
+
+        const loadModels = async () => {
+            try {
+                const response = await api.listModels(token);
+                const groups = Array.isArray(response?.modelGroups) ? response.modelGroups : [];
+
+                if (groups.length > 0) {
+                    setAvailableModels(groups);
+
+                    const allOptions = groups.flatMap((group) => group.options || []);
+                    const selectedExists = allOptions.some((option) => option.value === selectedModel);
+                    if (!selectedExists && allOptions[0]?.value) {
+                        setSelectedModel(allOptions[0].value);
+                        localStorage.setItem(MODEL_KEY, allOptions[0].value);
+                    }
+                }
+            } catch (error) {
+                console.warn('Unable to load model catalog from server, using fallback list.');
+            }
+        };
+
+        loadModels();
+    }, [token]);
 
     const setModel = async (value) => {
         setSelectedModel(value);
@@ -38,8 +66,10 @@ export function ModelProvider({ children }) {
     };
 
     const value = {
+        availableModels,
         selectedModel,
         modelPulling,
+        isModelPulling: modelPulling,
         modelPullStatus,
         setModel
     };

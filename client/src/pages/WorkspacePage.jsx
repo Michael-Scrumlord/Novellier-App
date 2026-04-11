@@ -14,7 +14,6 @@ import { useStoryContext } from '../contexts/StoryContext.jsx';
 import { useModelContext } from '../contexts/ModelContext.jsx';
 import { useAIContext } from '../contexts/AIContext.jsx';
 import { STORY_TEMPLATES } from '../lib/storyTemplates.js';
-import { MODEL_OPTIONS } from '../constants/models.js';
 
 export function WorkspacePage() {
     const { storyId } = useParams();
@@ -75,7 +74,7 @@ export function WorkspacePage() {
                         storyCtx={storyCtx} 
                         modelCtx={modelCtx} 
                         aiCtx={aiCtx}
-                        models={MODEL_OPTIONS}
+                        models={modelCtx.availableModels}
                         onSave={() => storyCtx.saveStory()} 
                         onSuggest={() => aiCtx.requestSuggestion()} 
                         onOpenBookView={() => storyCtx.setBookViewOpen(true)}
@@ -86,7 +85,7 @@ export function WorkspacePage() {
                     <PromptPanel 
                         aiCtx={aiCtx}
                         modelCtx={modelCtx}
-                        models={MODEL_OPTIONS}
+                        models={modelCtx.availableModels}
                         isCollapsed={isPromptCollapsed} 
                         onToggle={() => setIsPromptCollapsed(!isPromptCollapsed)}
                         onSuggest={() => aiCtx.requestSuggestion()}
