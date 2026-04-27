@@ -1,154 +1,126 @@
-export class PromptBuilder {    
-    static build({ currentText, ragContext, feedbackFocus, customPrompt, currentChapterSummary, currentBeatSummary, storySummary, storySummaryShort, storySummaryLong }) {
-        const baseInstructions = [
-            'You are an expert Developmental Editor for novels. Your task is to analyze the provided manuscript draft and deliver actionable, structural critique.',
+import { truncateAtBoundary, chunkText } from './TextUtils.js';
+
+export class PromptBuilder {
+    static build({
+        currentText,
+        ragContext,
+        feedbackFocus,
+        customPrompt,
+        currentChapterSummary,
+        currentBeatSummary,
+        storySummary,
+        storySummaryShort,
+        storyFacts,
+        mode,
+    }) {
+        const toolsBaseInstructions = [
+            'You are an agentic AI operating directly within a system backend. Your purpose is to manage a living continuity database.',
+            'You have been equipped with system tools to modify this database. Use them when requested to add or remove facts.',
+            'If asked to list, check, or summarize facts, simply answer the user in natural language using the ESTABLISHED CONTINUITY FACTS provided below.',
             'CRITICAL RULES:',
-            '- DO NOT rewrite, edit, or continue the story. Critique only.',
-            '- Be concise. Avoid conversational filler (e.g., do not say "Here is your feedback").',
-            '- Ground your critique strictly in the requested focus area.'
+            '- You must invoke the integrated function-calling mechanism natively when using tools.',
+            '- UNDER NO CIRCUMSTANCES should you output a JSON or list of tools when answering a question. NEVER invent or hallucinate new facts if you were not explicitly instructed to add them.',
+            '- DO NOT critique the user or the story draft.',
+            '- DO NOT rewrite the story.',
         ];
 
-        // Format focus using the upgraded switch statement
-        const focusInstructions = [
-            `FOCUS AREA: ${this._formatFocus(feedbackFocus)}`
-        ];
-        
+        const baseInstructions = mode === 'tools'
+            ? toolsBaseInstructions
+            : [
+                'You are an expert Developmental Editor for novels. Your task is to analyze the provided manuscript draft and deliver actionable, structural critique.',
+                'CRITICAL RULES:',
+                '- DO NOT rewrite, edit, or continue the story. Critique only.',
+                '- Be concise. Avoid conversational filler (e.g., do not say "Here is your feedback").',
+                '- Ground your critique strictly in the requested focus area.',
+            ];
+
+        const focusInstructions = mode === 'tools'
+            ? []
+            : [`FOCUS AREA: ${this._formatFocus(feedbackFocus)}`];
+
         if (customPrompt) {
-            focusInstructions.push(`ADDITIONAL INSTRUCTIONS: ${customPrompt}`);
+            focusInstructions.push(
+                `Consider the following user request FIRST when responding: ${customPrompt}`
+            );
         }
 
-        // Build the prompt sections dynamically
         const promptParts = [
             ...baseInstructions,
-            '', // Blank line
+            '',
             ...focusInstructions,
-            ''
+            '',
         ];
 
-        const chapterMemory = this._truncateForPrompt((currentChapterSummary || '').trim(), 700);
-        const beatMemory = this._truncateForPrompt((currentBeatSummary || '').trim(), 900);
-        const storyMemory = this._truncateForPrompt((storySummary || storySummaryShort || '').trim(), 1300);
-        const longMemory = this._truncateForPrompt((storySummaryLong || '').trim(), 2200);
-        const hasContext = ragContext && ragContext.trim().length > 0 && !ragContext.includes('No previous context');
-
-        if (chapterMemory) {
+        if (Array.isArray(storyFacts) && storyFacts.length > 0) {
             promptParts.push(
-                'This is just a chapter summary, not the word for word text.',
-                '<current_chapter_summary>',
-                chapterMemory,
-                '</current_chapter_summary>',
+                '=== ESTABLISHED CONTINUITY FACTS ===',
+                'You must strictly adhere to the objective facts listed below, as they form the fundamental truth of the universe:',
+                ...storyFacts.map(fact => `- ${fact}`),
                 ''
             );
         }
 
-        if (beatMemory) {
-            promptParts.push(
-                'This is just a beat summary, not the word for word text.',
-                '<current_beat_summary>',
-                beatMemory,
-                '</current_beat_summary>',
-                ''
-            );
-        }
+        if (mode !== 'tools') {
+            const chapterMemory = truncateAtBoundary((currentChapterSummary || '').trim(), 700);
+            const beatMemory = truncateAtBoundary((currentBeatSummary || '').trim(), 900);
+            const storyMemory = truncateAtBoundary((storySummary || storySummaryShort || '').trim(), 1300);
+            const hasContext = !!(ragContext?.trim());
 
-        if (storyMemory) {
-            promptParts.push(
-                'This is just a story summary, not the word for word text.',
-                '<story_summary>',
-                storyMemory,
-                '</story_summary>',
-                ''
-            );
-        }
-
-        if (longMemory && !hasContext && !storyMemory) {
-            promptParts.push(
-                'This is just a long story memory, not the word for word text.',
-                '<story_memory_long>',
-                longMemory,
-                '</story_memory_long>',
-                ''
-            );
-        }
-
-        // Only inject Context if valid
-        if (hasContext) {
-            const compactContext = this._truncateForPrompt(ragContext.trim(), 900);
-            promptParts.push(
-                '<previous_context>',
-                compactContext,
-                '</previous_context>',
-                ''
-            );
-        }
-
-        // Inject the draft text inside strict XML boundaries
-        const latestDraftChunks = this._getLatestChunks(currentText.trim(), 1600, 200, 2);
-        const draftToReview = latestDraftChunks.join('\n\n---\n\n');
-
-        promptParts.push(
-            '<draft_to_review>',
-            draftToReview,
-            '</draft_to_review>',
-            '',
-            'REQUIRED OUTPUT FORMAT:',
-            'Present your critique as a markdown list. For each issue:',
-            '1. Quote the problematic text briefly.',
-            '2. Explain the issue based on the FOCUS AREA.',
-            '3. Suggest an approach to fix it.'
-        );
-
-        // Logging the prompt. Get rid of this thing later.
-        console.log('--- PromptBuilder Debug ---', promptParts.join('\n'), '--- End of Prompt ---');
-
-        // Compresses multiple new lines into a single one.
-        // It helps the model by reducing the token count.
-        return promptParts.join('\n')
-    }
-
-    static _truncateForPrompt(text, maxChars) {
-        if (!text || text.length <= maxChars) return text || '';
-
-        const sliced = text.slice(0, maxChars);
-        const lastBoundary = Math.max(
-            sliced.lastIndexOf('. '),
-            sliced.lastIndexOf('\n'),
-            sliced.lastIndexOf(' ')
-        );
-
-        if (lastBoundary <= 0) return `${sliced.trim()}...`;
-        return `${sliced.slice(0, lastBoundary).trim()}...`;
-    }
-
-    static _getLatestChunks(text, chunkSize = 1600, overlap = 200, maxChunks = 2) {
-        if (!text) return [''];
-        if (text.length <= chunkSize) return [text];
-
-        const chunks = [];
-        let start = 0;
-
-        while (start < text.length) {
-            let end = Math.min(start + chunkSize, text.length);
-
-            if (end < text.length) {
-                const boundary = Math.max(
-                    text.lastIndexOf('\n', end),
-                    text.lastIndexOf('. ', end),
-                    text.lastIndexOf(' ', end)
+            if (chapterMemory) {
+                promptParts.push(
+                    'This is just a chapter summary, not the word for word text.',
+                    '<current_chapter_summary>',
+                    chapterMemory,
+                    '</current_chapter_summary>',
+                    ''
                 );
-                if (boundary > start + Math.floor(chunkSize * 0.6)) {
-                    end = boundary;
-                }
             }
 
-            const chunk = text.slice(start, end).trim();
-            if (chunk) chunks.push(chunk);
+            if (beatMemory) {
+                promptParts.push(
+                    'This is just a beat summary, not the word for word text.',
+                    '<current_beat_summary>',
+                    beatMemory,
+                    '</current_beat_summary>',
+                    ''
+                );
+            }
 
-            if (end >= text.length) break;
-            start = Math.max(end - overlap, start + 1);
+            if (storyMemory) {
+                promptParts.push(
+                    'This is just a story summary, not the word for word text.',
+                    '<story_summary>',
+                    storyMemory,
+                    '</story_summary>',
+                    ''
+                );
+            }
+
+            if (hasContext) {
+                const compactContext = truncateAtBoundary(ragContext.trim(), 900);
+                promptParts.push('<previous_context>', compactContext, '</previous_context>', '');
+            }
+
+            // Slice to last 2 chunks so the draft stays within token budget.
+            const draftToReview = chunkText(currentText.trim(), 1600, 200).slice(-2).join('\n\n---\n\n');
+
+            promptParts.push(
+                '<draft_to_review>',
+                draftToReview,
+                '</draft_to_review>',
+                ''
+            );
+
+            promptParts.push(
+                'REQUIRED OUTPUT FORMAT:',
+                'Present your critique as a markdown list. For each issue:',
+                '1. Quote the problematic text briefly.',
+                '2. Explain the issue based on the FOCUS AREA.',
+                '3. Suggest an approach to fix it.'
+            );
         }
 
-        return chunks.slice(-maxChunks);
+        return promptParts.join('\n');
     }
 
     static _formatFocus(feedbackType) {
