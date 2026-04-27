@@ -1,3 +1,5 @@
+// Seeds the database with a default admin user on first boot.
+// No-ops silently if the admin account already exists.
 export const seedDefaultAdmin = async (userService) => {
     const adminUsername = process.env.ADMIN_USER || 'admin';
     const adminPassword = process.env.ADMIN_PASS || 'admin';
@@ -15,7 +17,7 @@ export const seedDefaultAdmin = async (userService) => {
         firstName: 'Admin',
         lastName: 'User',
         email: 'administrator@email.com',
-        profilePicture: null
+        profilePicture: null,
     });
 
     console.log(`Created default admin user: ${adminUsername}`);
