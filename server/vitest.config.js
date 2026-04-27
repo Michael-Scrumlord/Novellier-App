@@ -7,11 +7,7 @@ export default defineConfig({
         coverage: {
             provider: 'v8',
             reporter: ['text', 'html'],
-            exclude: [
-                'node_modules/**',
-                '**/__tests__/',
-                '**/*.test.js',
-                ],
+            exclude: ['node_modules/**', '**/__tests__/', '**/*.test.js'],
             cleanOnRerun: true,
             reportsDirectory: './coverage',
         },
@@ -19,5 +15,5 @@ export default defineConfig({
         hookTimeout: 10000,
         include: ['**/__tests__/**/*.test.js', '**/*.test.js'],
         exclude: ['node_modules', 'dist', '.idea', '.git', '.cache'],
-    }
+    },
 });
