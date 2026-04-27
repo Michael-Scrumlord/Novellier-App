@@ -1,184 +1,246 @@
 networks:
-  novellier-network:
-    driver: bridge
+    novellier-network:
+        driver: bridge
+    # Isolated network for socket proxy — only the server can reach it.
+    # No other compose service is attached to this network.
+    docker-proxy-network:
+        driver: bridge
+        internal: true
 
 services:
-  # Express server that connects to ChromaDB and Ollama
-  server:
-    build: ./server
-    ports:
-      - "5001:5000"
-    networks:
-      - novellier-network
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock  # Required for container monitoring
-    environment:
-      - CHROMA_URL=${CHROMA_URL}
-      - OLLAMA_URL=${OLLAMA_URL}
-      - MONGO_URL=${MONGO_URL}
-      - MONGO_DB=${MONGO_DB}
-      - AI_PROVIDER=${AI_PROVIDER}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
-      - JWT_SECRET=${JWT_SECRET} # Default secret, should be changed later
-      - COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME}
-      - COMPOSE_NETWORK=${COMPOSE_NETWORK}
-    depends_on:
-      chromadb:
-        condition: service_healthy
-      ollama: 
-        condition: service_healthy  
-      mongodb:
-        condition: service_healthy 
-    healthcheck: 
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    restart: unless-stopped
+    # Express server that connects to ChromaDB and Ollama
+    server:
+        build: ./server
+        ports:
+            - '5001:5000'
+        networks:
+            - novellier-network
+            - docker-proxy-network
+        environment:
+            - CHROMA_URL=${CHROMA_URL}
+            - OLLAMA_URL=${OLLAMA_URL}
+            - MONGO_URL=${MONGO_URL}
+            - MONGO_DB=${MONGO_DB}
+            - LLM_MODEL=${LLM_MODEL}
+            - SUMMARY_MODEL=${SUMMARY_MODEL}
+            - LOCAL_MODELS=${LOCAL_MODELS}
+            - CONSTRAINED_MODELS=${CONSTRAINED_MODELS}
+            - BALANCED_MODEL=${BALANCED_MODEL}
+            - EMBEDDING_MODEL=${EMBEDDING_MODEL}
+            - AI_PROVIDER=${AI_PROVIDER}
+            - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+            - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+            - JWT_SECRET=${JWT_SECRET}
+            - COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME}
+            - COMPOSE_NETWORK=${COMPOSE_NETWORK}
+            # Proxy endpoint — adapter reads this instead of the raw socket path.
+            - DOCKER_HOST=tcp://docker-socket-proxy:2375
+        depends_on:
+            docker-socket-proxy:
+                condition: service_healthy
+            chromadb:
+                condition: service_healthy
+            mongodb:
+                condition: service_healthy
+        healthcheck:
+            test: ['CMD', 'curl', '-f', 'http://localhost:5000/health']
+            interval: 30s
+            timeout: 10s
+            retries: 3
+            start_period: 30s
+        deploy:
+            resources:
+                limits:
+                    cpus: '1.5'
+                    memory: 1g
+        restart: unless-stopped
 
-# Frontend React app
-  client:
-    build: 
-      context: ./client
-      target: production
-    ports:
-      - "3001:80"
-    networks:
-      - novellier-network
-    profiles: ["prod"]
-    volumes:
-      - ./client:/app
-      - /app/node_modules
-    environment: 
-      - CHOKIDAR_USEPOLLING=true
-      - WATCHPACK_POLLING=true
-      - WDS_SOCKET_PORT=0
-    stdin_open: true
-    tty: true
-    depends_on:
-      server:
-        condition: service_healthy
-    restart: unless-stopped
+    # Read-only Docker API proxy — exposes only the endpoints the server needs.
+    # The raw socket is never visible to application containers.
+    docker-socket-proxy:
+        image: tecnativa/docker-socket-proxy:latest
+        networks:
+            - docker-proxy-network
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock:ro
+        environment:
+            # Allow list — deny everything, permit only what the monitoring adapter uses.
+            - CONTAINERS=1   # GET /containers/json
+            - VOLUMES=1      # GET /volumes, GET /system/df (includes volumes)
+            - INFO=1         # GET /info
+            - SYSTEM=1       # GET /system/df (volume disk usage — routed under SYSTEM, not VOLUMES)
+            # Explicitly deny all mutating / privileged endpoints.
+            # Keep this in mind.. maybe I can use these endpoints later. 
+            - POST=0
+            - DELETE=0
+            - BUILD=0
+            - COMMIT=0
+            - CONFIGS=0
+            - DISTRIBUTION=0
+            - EXEC=0
+            - GRPC=0
+            - IMAGES=0
+            - NETWORKS=0
+            - NODES=0
+            - PLUGINS=0
+            - SECRETS=0
+            - SERVICES=0
+            - SESSION=0
+            - SWARM=0
+            - TASKS=0
+        healthcheck:
+            test: ['CMD-SHELL', 'nc -z localhost 2375 || exit 1']
+            interval: 10s
+            timeout: 5s
+            retries: 5
+            start_period: 10s
+        deploy:
+            resources:
+                limits:
+                    cpus: '0.1'
+                    memory: 32m
+        restart: unless-stopped
 
-# Frontend Development React App (with hot reloading 🌶️)
-  client-dev:
-    build: 
-      context: ./client
-      target: development
-    command: npm run dev -- --host 0.0.0.0 --port 5173
-    ports:
-      - "5173:5173"
-    networks:
-      - novellier-network
-    profiles: ["dev"]
-    volumes:
-      - ./client:/app
-      - /app/node_modules
-    stdin_open: true
-    tty: true
-    depends_on:
-      server:
-        condition: service_healthy
-    restart: unless-stopped
+    # Frontend React app
+    client:
+        build:
+            context: ./client
+            target: production
+        ports:
+            - '3001:80'
+        networks:
+            - novellier-network
+        profiles: ['prod']
+        volumes:
+            - ./client:/app
+            - /app/node_modules
+        environment:
+            - CHOKIDAR_USEPOLLING=true
+            - WATCHPACK_POLLING=true
+            - WDS_SOCKET_PORT=0
+        stdin_open: true
+        tty: true
+        depends_on:
+            server:
+                condition: service_healthy
+        deploy:
+            resources:
+                limits:
+                    cpus: '0.5'
+                    memory: 256m
+        restart: unless-stopped
 
-  # ChromaDB vector database for storing/querying embeddings
-  chromadb:
-    image: chromadb/chroma:0.4.24
-    ports:
-      - "8001:8000"
-    networks:
-      - novellier-network
-    healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/heartbeat').read()\" || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
-    restart: unless-stopped
+    # Frontend Development React App (with hot reloading 🌶️)
+    client-dev:
+        build:
+            context: ./client
+            target: development
+        command: npm run dev -- --host 0.0.0.0 --port 5173
+        ports:
+            - '5173:5173'
+        networks:
+            - novellier-network
+        profiles: ['dev']
+        volumes:
+            - ./client:/app
+            - /app/node_modules
+        stdin_open: true
+        tty: true
+        depends_on:
+            server:
+                condition: service_healthy
+        deploy:
+            resources:
+                limits:
+                    cpus: '1.0'
+                    memory: 1g
+        restart: unless-stopped
 
-  # Ollama LLM server for hosting language models
-  ollama:
-    image: ollama/ollama:0.20.3
-    # build: ./ollama
-    entrypoint:
-      - /bin/sh
-      - -lc
-      - |
-        ollama serve &
-        echo "Waiting for Ollama server to start..."
-        until ollama list > /dev/null 2>&1; do sleep 1; done
-        echo "Pulling nomic-embed-text model..."
-        ollama pull nomic-embed-text
-        wait
-    ports:
-      - "11434:11434"
-    volumes:
-      - ./ollama_data:/root/.ollama
-      #- ./ollama/pull-model.sh:/pull-model.sh
-    networks:
-      - novellier-network
-      # I see now why this was a bad idea
-      # For future reference modifying the "latest" image is not good practice and causes interference with other projects that use ollama. 
-      # Also, I should stop using latest images. 
-      # Going forward, the container does not decide the image, the server does.
-    # entrypoint: ["bash", "/pull-model.sh"]  # Pull the model on startup, can be modified to pull specific models or handle updates
-    healthcheck:
-      test: ["CMD-SHELL", "ollama list > /dev/null 2>&1 || exit 1"]
-      interval: 10s
-      timeout: 10s
-      retries: 30
-      start_period: 120s
-    restart: unless-stopped
+    # ChromaDB vector database for storing/querying embeddings
+    chromadb:
+        image: chromadb/chroma:0.4.24
+        ports:
+            - '8001:8000'
+        networks:
+            - novellier-network
+        healthcheck:
+            test:
+                [
+                    'CMD-SHELL',
+                    'python -c "import urllib.request; urllib.request.urlopen(''http://localhost:8000/api/v1/heartbeat'').read()" || exit 1',
+                ]
+            interval: 10s
+            timeout: 5s
+            retries: 10
+            start_period: 30s
+        deploy:
+            resources:
+                limits:
+                    cpus: '1.0'
+                    memory: 1g
+        restart: unless-stopped
 
-  # Mongo DB for storing user data, tokens, and stories
-  mongodb:
-    image: mongo:7
-    ports: 
-      - "27018:27017"
-    networks:
-      - novellier-network
-    volumes:
-      - novellier-mongo-data:/data/db
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=admin
-      - MONGO_INITDB_ROOT_PASSWORD=admin # Default admin credentials, should be changed in production
-    healthcheck:
-      test: ["CMD", "mongosh", "-u", "admin", "-p", "admin", "--authenticationDatabase", "admin", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
-    restart: unless-stopped
+    # Ollama LLM server for hosting language models
+    ollama:
+        image: ollama/ollama:0.20.3
+        entrypoint:
+            - /bin/sh
+            - -lc
+            - |
+                ollama serve &
+                echo "Waiting for Ollama server to start..."
+                until ollama list > /dev/null 2>&1; do sleep 1; done
+                echo "Pulling nomic-embed-text model..."
+                ollama pull nomic-embed-text
+                wait
+        ports:
+            - '11435:11434'
+        volumes:
+            - novellier-ollama-data:/root/.ollama
+        networks:
+            - novellier-network
+        healthcheck:
+            test: ['CMD-SHELL', 'ollama list > /dev/null 2>&1 || exit 1']
+            interval: 10s
+            timeout: 10s
+            retries: 30
+            start_period: 120s
+        deploy:
+            resources:
+                limits:
+                    cpus: '4.0'
+                    memory: 8g
+        restart: unless-stopped
 
-  # Portainer container for grabbing the status of the containers. To be used in the Admin Panel.
-  # TODO: I have to find a use case for this since I can actually just use the Docker Daemon API directly. Or maybe just remove.
-  portainer:
-    image: portainer/portainer-ce:latest
-    environment:
-      - INITIAL_ADMIN_USER=${PORTAINER_USERNAME:-admin}
-      - INITIAL_ADMIN_PASSWORD=${PORTAINER_PASSWORD:-portainer}
-    networks:
-      - novellier-network
-    ports:
-      - "9000:9000"
-
-# Mongo Express for managing the MongoDB instance through a web interface. Not needed but it'll be useful later.
-#  mongo-express:
-#    image: mongo-express:1.0.2-20
-#    ports:
-#      - "8081:8081"
-#    networks:
-#      - novellier-network
-#    environment:
-#      - ME_CONFIG_MONGODB_URL=mongodb://admin:admin@mongodb:27017/novellier?authSource=admin
-#    depends_on:
-#      mongodb:
-#        condition: service_healthy
-#    restart: unless-stopped
+    # Mongo DB for storing user data, tokens, and stories
+    mongodb:
+        image: mongo:7
+        ports:
+            - '27018:27017'
+        networks:
+            - novellier-network
+        volumes:
+            - novellier-mongo-data:/data/db
+        environment:
+            - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USERNAME}
+            - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
+        healthcheck:
+            test:
+                [
+                    'CMD-SHELL',
+                    'mongosh -u "$$MONGO_INITDB_ROOT_USERNAME" -p "$$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin --eval "db.adminCommand(''ping'')"',
+                ]
+            interval: 10s
+            timeout: 5s
+            retries: 10
+            start_period: 30s
+        deploy:
+            resources:
+                limits:
+                    cpus: '1.0'
+                    memory: 1g
+        restart: unless-stopped
 
 volumes:
-  portainer_data:
-  novellier-mongo-data:
-  novellier-ollama-data:
+    novellier-mongo-data:
+    novellier-ollama-data:
