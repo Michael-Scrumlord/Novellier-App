@@ -1,13 +1,7 @@
 import { IMongoMonitorPort } from '../../core/ports/IMonitoringPorts.js';
 
-/**
- * Adapter that queries MongoDB admin APIs for database status.
- *
- * Infrastructure concerns isolated here:
- * - Raw MongoDB admin command execution
- * - Collection stat enumeration
- * - Error handling for transient collection issues
- */
+// This adapter implements the IMongoMonitorPort interface, providing a concrete implementation for monitoring MongoDB status.
+// Infrastructure concerns such as direct database queries and error handling are encapsulated within this class, keeping the core application logic clean and focused on business rules.
 export class MongoMonitoringAdapter extends IMongoMonitorPort {
     constructor({ db }) {
         super();
@@ -34,7 +28,6 @@ export class MongoMonitoringAdapter extends IMongoMonitorPort {
                 counts[name] = collStats.count;
                 collectionSizes[name] = collStats.size;
             } catch {
-                // Ignore transient collection errors
             }
         }
 
