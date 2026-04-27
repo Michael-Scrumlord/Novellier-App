@@ -1,64 +1,51 @@
-// Dependency injection setup for the server application
-// This file can be used to manage and inject dependencies across the application
-// For now, it's a placeholder for future enhancements
+import { MongoClient } from 'mongodb';
 
-import os from 'os';
+import AuthController from '../adapters/web/auth-controller.js';
+import { createAuthMiddleware } from '../adapters/web/auth-middleware.js';
 
-// Auth Stuff
-import AuthController from "../adapters/web/auth-controller.js";
-import { createAuthMiddleware } from "../adapters/web/auth-middleware.js";
+import MongoUserRepository from '../adapters/persistence/mongo-user-repo.js';
 
-// Mongo Stuff
-import MongoUserRepository from "../adapters/persistence/mongo-user-repo.js";
+import { UserService } from '../core/services/user-service.js';
+import UserController from '../adapters/web/user-controller.js';
 
-// User Stuff
-import { UserService } from "../core/services/user-service.js";
-import UserController from "../adapters/web/user-controller.js";
-
-// Story Stuff
 import StoryController from '../adapters/web/story-controller.js';
 import MongoStoryRepository from '../adapters/persistence/mongo-story-repo.js';
+import MongoConversationRepository from '../adapters/persistence/mongo-conversation-repo.js';
+import MongoRuntimeModelConfigRepository from '../adapters/persistence/mongo-runtime-model-config-repo.js';
+import MonitoringController from '../adapters/web/monitoring-controller.js';
 import { StoryService } from '../core/services/story-service.js';
+import { OllamaModelCatalogService } from '../core/services/ollama-model-catalog-service.js';
+import { OllamaEndpointService } from '../core/services/ollama-endpoint-service.js';
+import { AIJobQueue, ConcurrencyThrottle } from '../core/services/ai-job-queue.js';
 
-// AI Stuff
 import LocalLLMAdapter from '../adapters/ai/local-llm-adapter.js';
 import { AISuggestionService } from '../core/services/ai-suggestion-service.js';
-import AIController from '../adapters/web/ai-controller.js';
+import { AIModelManagementService } from '../core/services/ai-model-management-service.js';
+import { ConversationService } from '../core/services/conversation-service.js';
+import { StorySummarizationService } from '../core/services/story-summarization-service.js';
+import { StoryIndexingService } from '../core/services/story-indexing-service.js';
+import { MonitoringService } from '../core/services/monitoring-service.js';
 
-// Chroma Stuff
+import SuggestionController from '../adapters/web/suggestion-controller.js';
+import { SuggestionUseCase } from '../core/services/suggest-use-case.js';
+import ModelManagementController from '../adapters/web/model-management-controller.js';
+import ModelCatalogController from '../adapters/web/model-catalog-controller.js';
+import ConversationController from '../adapters/web/conversation-controller.js';
+
 import ChromaVectorRepository from '../adapters/persistence/chroma-vector-repo.js';
+import { OllamaLibraryAdapter } from '../adapters/ai/ollama-library-adapter.js';
+import { DockerMonitoringAdapter } from '../adapters/monitoring/docker-monitoring-adapter.js';
+import { MongoMonitoringAdapter } from '../adapters/monitoring/mongo-monitoring-adapter.js';
 
-const phi3Model = process.env.BALANCED_MODEL || 'phi3'; // 2.2gb 128k context
-const creativeModel = process.env.CREATIVE_MODEL || 'phi4-mini:3.8b'; // 2.5gb 128k context
-const fastModel = process.env.FAST_MODEL || 'llama3.2'; // 2.0gb 128k context
+import MongoPullProgressStore from '../adapters/coordination/mongo-pull-progress-store.js';
+import MongoJobQueueCheckpointStore from '../adapters/coordination/mongo-job-queue-checkpoint-store.js';
+import { StreamingSemaphore } from '../adapters/coordination/streaming-semaphore.js';
 
-function buildRagConfig() {
-    const totalMemoryGB = os.totalmem() / (1024 ** 3);
-    const cpuCores = os.cpus().length;
+import { buildLlmHardwareOptions, buildRagConfig } from './runtime-config.js';
 
-    if (totalMemoryGB >= 16 && cpuCores >= 8) {
-        return { contextChunks: 5, maxContextTokens: 2000, batchSize: 10 };
-    }
-    if (totalMemoryGB >= 8 && cpuCores >= 4) {
-        return { contextChunks: 3, maxContextTokens: 1000, batchSize: 5 };
-    }
-    return { contextChunks: 2, maxContextTokens: 500, batchSize: 3 };
-}
-function buildLlmHardwareOptions() {
-    const cpuCores = os.cpus().length;
-    const totalMemoryGB = os.totalmem() / (1024 ** 3);
-
-    return {
-        num_ctx: totalMemoryGB >= 16 ? 4096 : 2048,
-        num_thread: Math.max(cpuCores - 2, 4),
-        num_gpu: 1,
-        use_mmap: true,
-        use_mlock: false,
-        f16_kv: true,
-        num_batch: totalMemoryGB >= 16 ? 512 : 256
-    };
-}
-
+// Dependency composition root — builds every adapter, service, and controller from env config.
+// Runtime model roles start null and are populated by hydrateRuntimeModels() on boot,
+// then managed through Admin > AI Models in the frontend.
 export const buildDependencies = () => {
     const mongoUrl = process.env.MONGO_URL || 'mongodb://mongodb:27017/novellier';
     const mongoDb = process.env.MONGO_DB || 'novellier';
@@ -68,75 +55,168 @@ export const buildDependencies = () => {
     const ragConfig = buildRagConfig();
     const llmHardwareOptions = buildLlmHardwareOptions();
 
+    const runtimeModels = {
+        suggestion: null,
+        summary: null,
+        embedding: process.env.EMBEDDING_MODEL || 'nomic-embed-text',
+    };
+
+    // Persistence
+    const mongoClient = new MongoClient(mongoUrl);
+    const db = mongoClient.db(mongoDb);
+
+    const storyRepository = new MongoStoryRepository({
+        db,
+        collectionName: process.env.MONGO_COLLECTION || 'stories',
+    });
+    const userRepository = new MongoUserRepository({ db });
+    const conversationRepository = new MongoConversationRepository({
+        db,
+        collectionName: process.env.MONGO_CONVERSATION_COLLECTION || 'ai_conversations',
+    });
+    const runtimeModelConfigRepository = new MongoRuntimeModelConfigRepository({
+        db,
+        collectionName: process.env.MONGO_RUNTIME_MODEL_CONFIG_COLLECTION || 'app_config',
+    });
     const vectorRepository = new ChromaVectorRepository({
         baseUrl: process.env.CHROMA_URL || 'http://chromadb:8000',
         collectionName: process.env.CHROMA_COLLECTION || 'project_store',
         ollamaUrl,
         embeddingModel: process.env.EMBEDDING_MODEL || 'nomic-embed-text',
-        ragConfig
-    });
-    const storyRepository = new MongoStoryRepository({
-        mongoUrl,
-        dbName: mongoDb,
-        collectionName: process.env.MONGO_COLLECTION || 'stories'
-    });
-    const userRepository = new MongoUserRepository({
-        mongoUrl,
-        dbName: mongoDb
+        ragConfig,
+        runtimeModels,
     });
 
-    const localAdapter = new LocalLLMAdapter({ // AI Service adapter
+    // Coordination
+    const pullProgressStore = new MongoPullProgressStore({
+        db,
+        collectionName: process.env.MONGO_PULL_PROGRESS_COLLECTION || 'pull_progress',
+    });
+    const jobQueueCheckpointStore = new MongoJobQueueCheckpointStore({
+        db,
+        collectionName: process.env.MONGO_JOB_QUEUE_COLLECTION || 'job_queue_checkpoints',
+    });
+    const streamingSemaphore = new StreamingSemaphore({
+        concurrency: Number(process.env.AI_STREAM_CONCURRENCY) || 2,
+    });
+
+    // AI adapter
+    const localAdapter = new LocalLLMAdapter({
         baseUrl: ollamaUrl,
-        model: process.env.LLM_MODEL || phi3Model,
+        model: runtimeModels.suggestion,
         temperature: Number(process.env.LLM_TEMPERATURE) || 0.8,
         numPredict: Number(process.env.LLM_NUM_PREDICT) || 1024,
-        hardwareOptions: llmHardwareOptions
+        hardwareOptions: llmHardwareOptions,
+        pullProgressStore,
+        streamingSemaphore,
     });
 
-    const storyService = new StoryService({ 
+    // Application services
+    const summaryConfig = {
+        model: runtimeModels.summary,
+        maxTokens: Number(process.env.SUMMARY_MAX_TOKENS) || 480,
+        maxSourceChars: Number(process.env.SUMMARY_MAX_SOURCE_CHARS) || 9000,
+    };
+
+    // One LLM completion runs at a time in the background. Streaming foreground prompts
+    // bypass this queue and call generateStreamingCompletion directly.
+    const aiJobQueue = new AIJobQueue({
+        concurrency: Number(process.env.AI_JOB_QUEUE_CONCURRENCY) || 1,
+        checkpointStore: jobQueueCheckpointStore,
+    });
+
+    // Embeddings are lightweight so small parallelism lets background indexing finish quickly
+    // without monopolizing the model host.
+    const embeddingThrottle = new ConcurrencyThrottle({
+        concurrency: Number(process.env.EMBEDDING_THROTTLE_CONCURRENCY) || 2,
+    });
+
+    const summarizationService = new StorySummarizationService({
+        aiService: localAdapter.aiService,
+        runtimeModels,
+        summaryConfig,
+        jobQueue: aiJobQueue,
+    });
+
+    const indexingService = new StoryIndexingService({ vectorRepository, embeddingThrottle });
+
+    const storyService = new StoryService({
         storyRepository,
-        vectorRepository,
-        aiService: localAdapter,
-        summaryConfig: {
-            model: process.env.SUMMARY_MODEL || process.env.LLM_MODEL || phi3Model,
-            maxTokens: Number(process.env.SUMMARY_MAX_TOKENS) || 480,
-            maxSourceChars: Number(process.env.SUMMARY_MAX_SOURCE_CHARS) || 9000
-        }
+        summarizationService,
+        indexingService,
     });
 
-    // Sprint 3: AI Integration
-
-    const suggestionService = new AISuggestionService({
-        aiService: localAdapter,
+    const aiSuggestionService = new AISuggestionService({
+        aiService: localAdapter.aiService,
         vectorRepository,
+        storyFactsGateway: storyService,
+        runtimeModels,
+        jobQueue: aiJobQueue,
         config: {
             maxActiveChars: Number(process.env.AI_MAX_ACTIVE_CHARS) || 8000,
-            maxTokens: process.env.AI_MAX_TOKENS ? Number(process.env.AI_MAX_TOKENS) : null
-        }
+            maxTokens: process.env.AI_MAX_TOKENS ? Number(process.env.AI_MAX_TOKENS) : null,
+            enableTextToolCallFallback: process.env.AI_ENABLE_TEXT_TOOL_CALL_FALLBACK === 'true',
+        },
     });
 
-    const localModels = (process.env.LOCAL_MODELS || 'phi3,phi4-mini,llama3.2,mistral')
-        .split(',')
-        .map((model) => model.trim())
-        .filter(Boolean);
-    
+    const ollamaLibraryAdapter = new OllamaLibraryAdapter({
+        libraryUrl: process.env.OLLAMA_LIBRARY_URL,
+    });
 
+    const modelCatalogService = new OllamaModelCatalogService({
+        modelManager: localAdapter.modelManager,
+        ollamaLibraryPort: ollamaLibraryAdapter,
+        runtimeModels,
+    });
 
-    //------------------------------------------------------------------
+    const modelManagementService = new AIModelManagementService({
+        modelManager: localAdapter.modelManager,
+        runtimeModels,
+        runtimeModelConfigPort: runtimeModelConfigRepository,
+    });
 
+    const ollamaEndpointService = new OllamaEndpointService({
+        runtimeConfigRepository: runtimeModelConfigRepository,
+        llmAdapter: localAdapter,
+        vectorRepository,
+        envFallbackUrl: ollamaUrl,
+    });
+
+    const conversationService = new ConversationService({ conversationRepository });
+
+    const suggestionService = new SuggestionUseCase({
+        suggestionService: aiSuggestionService,
+        conversationService,
+    });
+
+    const dockerMonitor = new DockerMonitoringAdapter({
+        projectName: process.env.COMPOSE_PROJECT_NAME || 'novellier-app',
+    });
+    const mongoMonitor = new MongoMonitoringAdapter({ db });
+    const monitoringService = new MonitoringService({ dockerMonitor, mongoMonitor });
 
     const userService = new UserService({ userRepository });
+
+    // HTTP controllers
     const authController = new AuthController({ userService, jwtSecret });
     const userController = new UserController({ userService });
     const storyController = new StoryController({ storyService });
-    const aiController = new AIController({
-        suggestionService: suggestionService,
-        aiService: localAdapter,
-        localModels
+    const monitoringController = new MonitoringController({ monitoringService });
+
+    const suggestionController = new SuggestionController({ suggestionService, runtimeModels });
+    const modelManagementController = new ModelManagementController({
+        aiService: localAdapter.aiService,
+        modelManager: localAdapter.modelManager,
+        modelManagementService,
+        ollamaEndpointService,
     });
+    const modelCatalogController = new ModelCatalogController({
+        modelCatalogService,
+        modelManagementService,
+    });
+    const conversationController = new ConversationController({ conversationService });
 
-
-    // Auth middleware can be created here and injected into routes that require authentication
+    // Auth middleware is created once so all routes share the same JWT configuration.
     const authMiddleware = createAuthMiddleware({ jwtSecret });
 
     return {
@@ -145,7 +225,21 @@ export const buildDependencies = () => {
         userController,
         authMiddleware,
         storyController,
-        aiController,
-        aiService: localAdapter
+        monitoringController,
+        mongoClient,
+        suggestionController,
+        modelManagementController,
+        modelCatalogController,
+        conversationController,
+        // Exposed for seeding and health checks
+        aiService: localAdapter.aiService,
+        modelManager: localAdapter.modelManager,
+        pullProgressStore,
+        jobQueueCheckpointStore,
+        streamingSemaphore,
+        aiJobQueue,
+        modelCatalogService,
+        modelManagementService,
+        ollamaEndpointService,
     };
-}
+};
