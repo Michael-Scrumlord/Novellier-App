@@ -1,8 +1,6 @@
-// Facade pattern for composing the Ollama transport
-// Implementation lives in ./ollama/
-// Public shape (default export LocalLLMAdapter, exposing .aiService / 
-// .modelManager / transport-level passthroughs) 
-// is unchanged so the composition root and tests keep working without modification.
+// Composition root for the Ollama adapter stack. Wires OllamaTransport, LocalAIService, and
+// LocalModelManager together and exposes .aiService and .modelManager for DI injection.
+// Transport-level methods (setBaseUrl, getBaseUrl, probeEndpoint) are forwarded for OllamaEndpointService.
 
 import { DEFAULT_BASE_URL } from './ollama/ollama-config.js';
 import { OllamaTransport } from './ollama/ollama-transport.js';
@@ -45,23 +43,7 @@ export default class LocalLLMAdapter {
         });
     }
 
-    /* Transport-level (consumed by OllamaEndpointService) */
     setBaseUrl(url) { return this.transport.setBaseUrl(url); }
     getBaseUrl() { return this.transport.getBaseUrl(); }
     probeEndpoint(url, options) { return this.transport.probeEndpoint(url, options); }
-
-    /* IAIService passthroughs */
-    generateCompletion(prompt, options) { return this.aiService.generateCompletion(prompt, options); }
-    ensureModelAvailable(name) { return this.aiService.ensureModelAvailable(name); }
-    generateStreamingCompletion(prompt, options, onChunk) {
-        return this.aiService.generateStreamingCompletion(prompt, options, onChunk);
-    }
-    warmupModel(name) { return this.aiService.warmupModel(name); }
-    keepAlive(name) { return this.aiService.keepAlive(name); }
-
-    /* IModelManager passthroughs */
-    listInstalledModels() { return this.modelManager.listInstalledModels(); }
-    pullModelWithProgress(name) { return this.modelManager.pullModelWithProgress(name); }
-    removeModel(name) { return this.modelManager.removeModel(name); }
-    getPullProgress(name) { return this.modelManager.getPullProgress(name); }
 }
