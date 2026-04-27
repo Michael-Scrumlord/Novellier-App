@@ -1,8 +1,11 @@
-import React, { createContext, useMemo, useContext, useState, useCallback } from 'react';
-import { api } from '../lib/api.js';
+import { createContext, useMemo, useContext, useState, useCallback } from 'react';
+import { authService } from '../services/authService.js';
 import { TOKEN_KEY, USER_KEY } from '../constants/storage.js';
 
 const AuthContext = createContext(null);
+
+// This AuthProvider component manages authentication state and provides login/logout functions. 
+// It also handles the token storage and removal. 
 
 export function AuthProvider({ children }) {
     const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY));
@@ -19,7 +22,7 @@ export function AuthProvider({ children }) {
         setAuthError('');
         setAuthLoading(true);
         try {
-            const data = await api.login(credentials);
+            const data = await authService.login(credentials);
             setToken(data.token);
             setUser(data.user);
             localStorage.setItem(TOKEN_KEY, data.token);
@@ -34,9 +37,9 @@ export function AuthProvider({ children }) {
     }, []);
 
     const handleLogout = useCallback(async () => {
-            const currentToken = localStorage.getItem(TOKEN_KEY);
-            if (currentToken) {
-            await api.logout(currentToken).catch(() => null);
+        const currentToken = localStorage.getItem(TOKEN_KEY);
+        if (currentToken) {
+            await authService.logout(currentToken).catch(() => null);
         }
         setToken(null);
         setUser(null);
@@ -67,18 +70,18 @@ export function AuthProvider({ children }) {
             handleLogin,
             handleLogout,
             clearTokenOnFailure,
-            updateUser 
+            updateUser,
         }),
         [
-        token, 
-        user, 
-        isAuthenticated, 
-        authError, 
-        authLoading, 
-        handleLogin, 
-        handleLogout, 
-        clearTokenOnFailure,
-        updateUser
+            token,
+            user,
+            isAuthenticated,
+            authError,
+            authLoading,
+            handleLogin,
+            handleLogout,
+            clearTokenOnFailure,
+            updateUser,
         ]
     );
 
