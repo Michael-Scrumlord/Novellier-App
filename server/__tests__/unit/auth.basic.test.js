@@ -10,8 +10,9 @@ describe('Authentication Tests', () => {
         app.use(express.json());
 
         const authController = {
-            login: async (_req, res) => res.json({ token: 'fake-token', user: { id: 'u1', role: 'admin' } }),
-            logout: async (_req, res) => res.status(200).json({ message: 'Logged out' })
+            login: async (_req, res) =>
+                res.json({ token: 'fake-token', user: { id: 'u1', role: 'admin' } }),
+            logout: async (_req, res) => res.status(200).json({ message: 'Logged out' }),
         };
 
         app.use(createRoutes({ authController }));

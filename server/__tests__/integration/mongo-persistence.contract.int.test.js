@@ -26,25 +26,23 @@ afterAll(async () => {
 
 describe('Mongo persistence', () => {
     it('verifies user repo default login can be instantiated and contains the admin user', async () => {
-
         const userRepoInstance = new MongoUserRepository({
             mongoUrl,
             dbName: 'novellier_test',
-            collectionName: 'users_test'
+            collectionName: 'users_test',
         });
 
         expect(typeof userRepoInstance.getCollection).toBe('function');
 
         const collection = await userRepoInstance.getCollection();
         expect(collection.collectionName).toBe('users_test');
-
     });
 
     it('verifies story repo can be instantiated and it can retrieve the collection', async () => {
         const storyRepoInstance = new MongoStoryRepository({
             mongoUrl,
             dbName: 'novellier_test',
-            collectionName: 'stories_test'
+            collectionName: 'stories_test',
         });
         expect(typeof storyRepoInstance.getCollection).toBe('function');
 

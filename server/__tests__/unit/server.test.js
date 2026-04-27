@@ -2,12 +2,8 @@ import { describe, it, expect } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 
-/**
- * Basic unit tests for server configuration
- * These test individual pieces without needing the full server running
- */
+// unit tests for server config. Tests individual pieces without needing the full server running.
 describe('Server Configuration Tests', () => {
-
     it('checks if health endpoint returns 200 OK status', async () => {
         const app = express();
         app.get('/health', (req, res) => {
