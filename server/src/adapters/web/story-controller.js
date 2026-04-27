@@ -1,3 +1,5 @@
+// The story controller handles HTTP requests related to story management.
+
 export default class StoryController {
     constructor({ storyService }) {
         if (!storyService) {
@@ -23,7 +25,8 @@ export default class StoryController {
     }
 
     async createStory(req, res) {
-        const { title, titleHtml, chapterHeadingHtml, content, sections, genre, templateId } = req.body || {};
+        const { title, titleHtml, chapterHeadingHtml, content, sections, genre, templateId } =
+            req.body || {};
         const { userId } = this._requestUser(req);
         const story = await this.storyService.createStory({
             title,
@@ -33,7 +36,7 @@ export default class StoryController {
             sections,
             genre,
             templateId,
-            userId
+            userId,
         });
         return res.status(201).json({ story });
     }
@@ -41,10 +44,10 @@ export default class StoryController {
     async updateStory(req, res) {
         const { userId, userRole } = this._requestUser(req);
         const story = await this.storyService.updateStory(
-          req.params.id,
-          req.body || {},
-          userId,
-          userRole
+            req.params.id,
+            req.body || {},
+            userId,
+            userRole
         );
         return res.json({ story });
     }
