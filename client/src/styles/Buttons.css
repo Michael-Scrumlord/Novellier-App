@@ -1,87 +1,143 @@
+/*
+ * VisionOS button system.
+ * Baseline `.btn` is glassmorphic — translucent surface, blurred backdrop, subtle
+ * inset border. Variants only modify accent / surface tint; never the primitives.
+ */
+
 .btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  padding: 0.6rem 1.4rem;
-  font-size: 0.95rem;
-  font-weight: 500;
-  font-family: inherit;
-  letter-spacing: 0.3px;
-  cursor: pointer;
-  max-width: 100%;
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+
+    border-radius: var(--radius-pill);
+    padding: 0.65rem 1.4rem;
+
+    font-size: 0.95rem;
+    font-weight: 500;
+    font-family: inherit;
+    letter-spacing: 0.3px;
+    color: var(--ink);
+
+    background: rgba(128, 128, 128, 0.15);
+    backdrop-filter: var(--blur-md);
+    -webkit-backdrop-filter: var(--blur-md);
+
+    border: 1px solid var(--border-subtle);
+    box-shadow:
+        var(--shadow-sm),
+        inset 0 1px 1px rgba(255, 255, 255, 0.15);
+
+    cursor: pointer;
+    max-width: 100%;
+    transition: var(--transition-default);
 }
 
+.btn:hover {
+    background: rgba(128, 128, 128, 0.25);
+    transform: translateY(-1px);
+    box-shadow:
+        var(--shadow-md),
+        inset 0 1px 1px rgba(255, 255, 255, 0.25);
+}
+
+
+.btn:active {
+    transform: translateY(1px) scale(0.98);
+    box-shadow: var(--shadow-sm);
+}
+
+.btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+}
+
+body[data-theme='dark'] .btn {
+    background: rgba(255, 255, 255, 0.05);
+    box-shadow:
+        var(--shadow-sm),
+        inset 0 1px 1px rgba(255, 255, 255, 0.1);
+}
+
+
+body[data-theme='dark'] .btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* Glass — alias of base surface for explicit declarative usage. */
 .btn--glass {
-  background: rgba(255, 255, 255, 0.08);
-  
-  backdrop-filter: blur(40px) saturate(150%);
-  -webkit-backdrop-filter: blur(40px) saturate(150%);
-
-  border: 1px solid var(--border-subtle);
-  box-shadow: 
-    var(--shadow-sm),
-    inset 0 1px 1px rgba(255, 255, 255, 0.4),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
-  
-  color: var(--ink);
-}
-
-body[data-theme='dark'] .btn--glass {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--border-subtle);
-  box-shadow: 
-    var(--shadow-sm),
-    inset 0 1px 1px rgba(255, 255, 255, 0.15),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.02);
-}
-
-.btn--glass:hover {
-  background: rgba(255, 255, 255, 0.15);
-  transform: translateY(-1px);
-  box-shadow: 
-    var(--shadow-md),
-    inset 0 1px 1px rgba(255, 255, 255, 0.6);
-}
-
-body[data-theme='dark'] .btn--glass:hover {
-  background: rgba(255, 255, 255, 0.08);
+    /* Inherits everything from .btn — but we're just keeping this for.. future reference. */
 }
 
 .btn--primary {
-  background: var(--terracotta);
-  color: var(--accent-ink);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 
-    var(--shadow-accent),
-    inset 0 1px 1px rgba(255, 255, 255, 0.3);
+    background: var(--accent);
+    color: var(--accent-ink);
+    border: 1px solid transparent;
+    box-shadow:
+        0 4px 14px rgba(var(--accent-rgb), 0.25),
+        inset 0 1px 1px rgba(255, 255, 255, 0.2);
+    font-weight: 600;
 }
 
 .btn--primary:hover {
-  filter: brightness(1.15);
-  transform: translateY(-1px);
-  box-shadow: 
-    0 8px 24px var(--accent-soft), /* Glows intensely on hover */
-    inset 0 1px 1px rgba(255, 255, 255, 0.4);
+    background: var(--accent);
+    color: var(--accent-ink);
+    filter: brightness(1.1);
+    transform: translateY(-2px);
+    box-shadow:
+        0 8px 24px rgba(var(--accent-rgb), 0.35),
+        inset 0 1px 1px rgba(255, 255, 255, 0.3);
 }
 
-.btn--primary:active,
-.btn--glass:active,
-.btn--danger:active {
-  transform: translateY(1px) scale(0.98);
-  box-shadow: var(--shadow-sm);
+.btn--primary:active {
+    transform: translateY(1px) scale(0.98);
+    box-shadow: 0 2px 8px rgba(var(--accent-rgb), 0.2);
 }
 
+/* Ensure dark mode maintains the solid accent background and text */
+body[data-theme='dark'] .btn--primary {
+    background: var(--accent);
+    color: var(--accent-ink);
+    border-color: transparent;
+}
+
+body[data-theme='dark'] .btn--primary:hover {
+    background: var(--accent);
+    color: var(--accent-ink);
+    filter: brightness(1.1);
+    transform: translateY(-2px);
+    box-shadow:
+        0 8px 24px rgba(var(--accent-rgb), 0.45),
+        inset 0 1px 1px rgba(255, 255, 255, 0.3);
+}
+
+body[data-theme='dark'] .btn--primary:active {
+    transform: translateY(1px) scale(0.98);
+    box-shadow: 0 2px 8px rgba(var(--accent-rgb), 0.25);
+}
+
+/* Danger — translucent red wash. */
 .btn--danger {
-  background: var(--accent-soft); 
-  color: var(--terracotta);
-  border: 1px solid var(--border-subtle);
-  backdrop-filter: blur(20px) saturate(120%);
-  -webkit-backdrop-filter: blur(20px) saturate(120%);
+    background: rgba(var(--danger-rgb), 0.12);
+    color: var(--danger);
+    border-color: rgba(var(--danger-rgb), 0.3);
 }
 
 .btn--danger:hover {
-  background: transparent;
-  border-color: var(--terracotta);
+    background: rgba(var(--danger-rgb), 0.2);
+    border-color: rgba(var(--danger-rgb), 0.5);
+}
+
+/* Icon-only — square, compact. */
+.btn--icon {
+    padding: 0.45rem;
+    width: 2.25rem;
+    height: 2.25rem;
+}
+
+/* Small — for inline contexts (sidebars, table rows). */
+.btn--small {
+    padding: 0.4rem 1rem;
+    font-size: 0.85rem;
 }

@@ -1,0 +1,442 @@
+/* Global Utility Classes - All values map to tokens from App.css */
+
+/* Surface  */
+
+.surface-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-sm);
+}
+
+.surface-card--hoverable {
+    transition:
+        transform 0.2s ease,
+        background-color 0.2s ease;
+}
+
+.surface-card--hoverable:hover {
+    background: var(--surface-hover);
+    transform: translateY(-2px);
+}
+
+/*
+ * Frosted-glass surfaces — three tiers.
+ * glass-card  = card-bg + blur-md  (content cards)
+ * glass-panel = panel   + blur-md  (sidebars, admin panes)
+ * glass-window= panel   + blur-lg  (overlays, editor shell)
+ */
+.glass-card {
+    background: var(--card-bg);
+    -webkit-backdrop-filter: var(--blur-md);
+    backdrop-filter: var(--blur-md);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-subtle);
+    box-shadow:
+        var(--shadow-sm),
+        inset 0 1px 1px rgba(255, 255, 255, 0.2);
+}
+
+.glass-panel {
+    background: var(--panel);
+    -webkit-backdrop-filter: var(--blur-md);
+    backdrop-filter: var(--blur-md);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-md);
+}
+
+.glass-window {
+    background: var(--panel);
+    -webkit-backdrop-filter: var(--blur-lg);
+    backdrop-filter: var(--blur-lg);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    box-shadow:
+        var(--shadow-md),
+        inset 0 1px 1px rgba(255, 255, 255, 0.3),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+/* Layout — flex column  */
+
+.flex-col { display: flex; flex-direction: column; }
+
+.col-fill {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
+.col-fill-w {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+}
+
+/* Layout — flex row */
+
+.flex-row { display: flex; align-items: center; }
+
+.row-between {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+}
+
+.flex-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.flex-row-end { display: flex; align-items: center; justify-content: flex-end; }
+
+.row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.row--start    { align-items: flex-start; }
+.row--baseline { align-items: baseline; }
+.row--wrap     { flex-wrap: wrap; }
+
+/* Layout — grid  */
+
+/* Combine with --min-col custom property like style="--min-col: 280px" */
+.grid-auto-fill {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(var(--min-col, 240px), 1fr));
+    gap: var(--space-5);
+}
+
+.grid-auto-fit {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(var(--min-col, 200px), 1fr));
+    gap: var(--space-5);
+}
+
+.grid-2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+}
+
+.grid-3col {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-4);
+}
+
+/*  Layout — scrollable areas  */
+
+.scroll-area {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.scroll-area--padded {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: var(--space-4);
+}
+
+.page-shell {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--space-6);
+}
+
+/* Layout — positioning  */
+
+.center-absolute {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+/*  Layout — sizing  */
+
+.flex-1      { flex: 1; min-height: 0; min-width: 0; }
+.full-width  { width: 100%; }
+.full-height { height: 100%; }
+
+/* Stack  */
+
+.stack     { display: flex; flex-direction: column; gap: var(--space-3); }
+.stack--xs { gap: var(--space-1); }
+.stack--sm { gap: var(--space-2); }
+.stack--md { gap: var(--space-4); }
+.stack--lg { gap: var(--space-5); }
+
+/* Gap utilities */
+
+.gap-1 { gap: var(--space-1); }
+.gap-2 { gap: var(--space-2); }
+.gap-3 { gap: var(--space-3); }
+.gap-4 { gap: var(--space-4); }
+.gap-5 { gap: var(--space-5); }
+.gap-6 { gap: var(--space-6); }
+
+/* Padding utilities */
+
+.p-3  { padding: var(--space-3); }
+.p-4  { padding: var(--space-4); }
+.p-5  { padding: var(--space-5); }
+.p-6  { padding: var(--space-6); }
+.px-4 { padding-left: var(--space-4); padding-right: var(--space-4); }
+.px-5 { padding-left: var(--space-5); padding-right: var(--space-5); }
+.py-4 { padding-top: var(--space-4); padding-bottom: var(--space-4); }
+.py-5 { padding-top: var(--space-5); padding-bottom: var(--space-5); }
+
+/* Typography */
+
+.eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--muted);
+}
+
+.text-heading {
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: -0.5px;
+    margin: 0;
+}
+
+.text-muted    { color: var(--muted); margin: 0; }
+.text-muted-sm { color: var(--muted); font-size: 0.875rem; margin: 0; }
+.text-accent   { color: var(--terracotta); }
+.text-ink      { color: var(--ink); }
+
+.font-semibold { font-weight: 600; }
+.font-bold     { font-weight: 700; }
+.font-medium   { font-weight: 500; }
+.font-mono     { font-family: monospace; }
+
+.align-right  { text-align: right; }
+.align-center { text-align: center; }
+
+.truncate {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.tabular { font-variant-numeric: tabular-nums; }
+
+/* Loader / spinner */
+
+.loader-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 300px;
+    color: var(--muted);
+    gap: var(--space-4);
+}
+
+.spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--border-subtle);
+    border-top-color: var(--terracotta);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Empty state */
+
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+    color: var(--muted);
+    text-align: center;
+}
+
+.empty-state__icon {
+    font-size: 3rem;
+    margin-bottom: var(--space-4);
+    opacity: 0.5;
+}
+
+/* Accessibility */
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Overflow helpers */
+
+.overflow-hidden { overflow: hidden; }
+.overflow-auto   { overflow: auto; }
+.overflow-y-auto { overflow-y: auto; }
+
+/* Glass inputs */
+
+.glass-input {
+    background: rgba(255, 255, 255, 0.04);
+    -webkit-backdrop-filter: var(--blur-md);
+    backdrop-filter: var(--blur-md);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 0.875rem 1rem;
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 0.95rem;
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    transition: all 0.2s ease;
+}
+
+.glass-input:focus {
+    outline: none;
+    border-color: rgba(var(--accent-rgb), 0.5);
+    box-shadow: 0 0 0 3px var(--accent-soft), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+}
+
+.glass-input--small { padding: 0.4rem 0.75rem; font-size: 0.85rem; width: auto; min-width: 140px; }
+
+/* Glass select */
+
+.glass-select-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    min-width: 140px;
+    background: rgba(255, 255, 255, 0.08);
+    -webkit-backdrop-filter: var(--blur-md);
+    backdrop-filter: var(--blur-md);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-pill);
+    box-shadow: var(--shadow-sm), inset 0 1px 1px rgba(255, 255, 255, 0.25);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    overflow: hidden;
+}
+
+.glass-select-wrapper:focus-within {
+    border-color: rgba(var(--accent-rgb), 0.5);
+    box-shadow: var(--shadow-sm), 0 0 0 3px var(--accent-soft), inset 0 1px 1px rgba(255, 255, 255, 0.25);
+}
+
+.glass-select-wrapper::after {
+    content: '';
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid var(--muted);
+    pointer-events: none;
+    transition: border-top-color 0.2s ease;
+}
+
+.glass-select-wrapper:focus-within::after { border-top-color: var(--ink); }
+
+.glass-select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    width: 100%;
+    background: transparent !important;
+    border: none !important;
+    outline: none;
+    border-radius: 0;
+    box-shadow: none !important;
+    padding: 0.4rem 2rem 0.4rem 0.75rem;
+    font-size: 0.85rem;
+    font-family: inherit;
+    color: var(--ink);
+    cursor: pointer;
+}
+
+.glass-select option {
+    background: var(--panel, #1c1c1e);
+    color: var(--ink);
+}
+
+/* Glass badges */
+
+.glass-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background: var(--accent-soft);
+    color: var(--ink);
+    border-radius: var(--radius-pill);
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.glass-badge--admin {
+    background: rgba(255, 149, 0, 0.15);
+    color: #ff9500;
+    border: 1px solid rgba(255, 149, 0, 0.3);
+}
+
+.glass-badge--outline { background: transparent; border: 1px solid var(--border-strong); }
+.glass-badge--small   { font-size: 0.7rem; }
+.glass-badge--active  { background: var(--success) !important; color: #fff !important; }
+.glass-badge--default { margin-left: 0.5rem; }
+
+/* Glass progress */
+
+.glass-progress-container {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.glass-progress-bar {
+    flex: 1;
+    height: 6px;
+    background: var(--border-subtle);
+    border-radius: var(--radius-pill);
+    overflow: hidden;
+}
+
+.glass-progress-fill {
+    height: 100%;
+    background: var(--terracotta);
+    border-radius: var(--radius-pill);
+    transition: width 0.4s ease-out;
+    box-shadow: 0 0 8px rgba(var(--danger-rgb), 0.5);
+}
+
+.glass-progress-text {
+    font-size: 0.85rem;
+    color: var(--muted);
+    min-width: 3ch;
+    font-variant-numeric: tabular-nums;
+}
