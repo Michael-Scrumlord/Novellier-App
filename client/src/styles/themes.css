@@ -3,169 +3,184 @@
 body[data-theme='light'],
 body[data-theme='fall'],
 body:not([data-theme]) {
-  /* Typography */
-  --ink: #1d1d1f; 
-  --ink-rgb: 29, 29, 31;
-  --muted: rgba(29, 29, 31, 0.6);
-  
-  /* Panels */
-  --panel: rgba(255, 255, 255, 0.75); 
-  --card-bg: rgba(255, 255, 255, 0.65); 
-  --nav-bg: rgba(255, 255, 255, 0.8);
-  --input-bg: rgba(255, 255, 255, 0.8);
-  --overlay: rgba(255, 255, 255, 0.4);
+    --ink: #1d1d1f;
+    --muted: rgba(29, 29, 31, 0.6);
 
-  /* highlighting */
-  --accent: #FF2D55;
-  --accent-rgb: 255, 45, 85;
-  --accent-ink: #ffffff;
-  --accent-soft: rgba(255, 45, 85, 0.12);
-  --terracotta: #FF2D55;
-  --accent-gradient-end: #D01138;
-  --border-subtle: rgba(255, 255, 255, 0.6);
-  --border-strong: #ffffff;
-  --nav-border: rgba(255, 255, 255, 0.8);
+    --panel: rgba(255, 255, 255, 0.75);
+    --card-bg: rgba(255, 255, 255, 0.65);
+    --nav-bg: rgba(255, 255, 255, 0.8);
+    --input-bg: rgba(255, 255, 255, 0.8);
 
-  /* Shadows */
-  --nav-shadow: 0 8px 32px rgba(0, 0, 0, 0.04);
-  --shadow-sm: 0 4px 16px rgba(0, 0, 0, 0.03);
-  --shadow-md: 0 24px 48px rgba(0, 0, 0, 0.08);
-  --shadow-accent: 0 8px 24px rgba(0, 113, 227, 0.25);
+    --accent: #ff2d55;
+    --accent-rgb: 255, 45, 85;
+    --accent-ink: #ffffff;
+    --accent-soft: rgba(255, 45, 85, 0.12);
 
-  --scrollbar-thumb: rgba(29, 29, 31, 0.15);
-  --scrollbar-thumb-hover: rgba(29, 29, 31, 0.3);
-    --tooltip-bg: rgba(29, 29, 31, 0.85);
-  --tooltip-text: #ffffff;
-  --success: #34C759;
-  
-  --warm-cream: rgba(255, 255, 255, 0.6);
-  --warm-beige: rgba(255, 255, 255, 0.8);
+    --border-subtle: rgba(255, 255, 255, 0.6);
+    --border-strong: #ffffff;
+    --nav-border: rgba(255, 255, 255, 0.8);
 
-  background-color: #f5f5f7;
-  background-image: url('/light4.jpeg'); 
+    --nav-shadow: 0 8px 32px rgba(0, 0, 0, 0.04);
+    --shadow-sm: 0 4px 16px rgba(0, 0, 0, 0.03);
+    --shadow-md: 0 24px 48px rgba(0, 0, 0, 0.08);
+
+    --scrollbar-thumb: rgba(29, 29, 31, 0.15);
+    --scrollbar-thumb-hover: rgba(29, 29, 31, 0.3);
+
+    --success: #34c759;
+    --success-rgb: 52, 199, 89;
+    --danger: #ff3b30;
+    --danger-rgb: 255, 59, 48;
+
+    --surface-hover: rgba(0, 0, 0, 0.04);
+    --surface-hover-shadow:
+        inset 0 2px 4px rgba(0, 0, 0, 0.05),
+        inset 0 0 0 1px rgba(0, 0, 0, 0.02);
+
+    /* Inner writing card: dark glass inset against the lighter panel chrome */
+    --editor-surface: rgba(10, 10, 14, 0.86);
+    --editor-ink: rgba(242, 242, 248, 1.0);
+    --editor-muted: rgba(242, 242, 248, 0.52);
+
+    background-color: #f5f5f7;
+    background-image: url('/light4.jpeg');
 }
 
-/* Dark Theme
-*/
 body[data-theme='dark'] {
-  --ink: #ffffff; 
-  --ink-rgb: 255, 255, 255;
-  --muted: rgba(255, 255, 255, 0.55);
-  
-  --panel: rgba(10, 10, 10, 0.4); 
-  --card-bg: rgba(0, 0, 0, 0.45);  
-  --nav-bg: rgba(10, 10, 10, 0.6);
-  --input-bg: rgba(255, 255, 255, 0.06);
-  --overlay: rgba(0, 0, 0, 0.6);
-  --accent: #0A84FF; 
-  --accent-rgb: 10, 132, 255;
-  --accent-ink: #ffffff;
-  --accent-soft: rgba(10, 132, 255, 0.15);
-  --terracotta: #0A84FF; 
-  --accent-gradient-end: #5E5CE6; 
+    --ink: #ffffff;
+    --muted: rgba(255, 255, 255, 0.55);
 
-  --border-subtle: rgba(255, 255, 255, 0.04);
-  --border-strong: rgba(255, 255, 255, 0.12); 
-  --nav-border: rgba(255, 255, 255, 0.08);
+    --panel: rgba(10, 10, 10, 0.4);
+    --card-bg: rgba(0, 0, 0, 0.45);
+    --nav-bg: rgba(10, 10, 10, 0.6);
+    --input-bg: rgba(255, 255, 255, 0.06);
 
-  --shadow-sm: 0 4px 16px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 24px 48px rgba(0, 0, 0, 0.6);
-  --shadow-accent: 0 8px 24px rgba(10, 132, 255, 0.25);
-  --nav-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    --accent: #0a84ff;
+    --accent-rgb: 10, 132, 255;
+    --accent-ink: #ffffff;
+    --accent-soft: rgba(10, 132, 255, 0.15);
 
-  --scrollbar-thumb: rgba(255, 255, 255, 0.2);
-  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.4);
-  --tooltip-bg: rgba(30, 30, 30, 0.85);
-  --tooltip-text: #ffffff;
-  --success: #32D74B; 
-  
-  --warm-cream: rgba(255, 255, 255, 0.02);
-  --warm-beige: rgba(255, 255, 255, 0.05);
+    --border-subtle: rgba(255, 255, 255, 0.04);
+    --border-strong: rgba(255, 255, 255, 0.12);
+    --nav-border: rgba(255, 255, 255, 0.08);
 
-  background-color: #000000;
-  background-image: url('/abstract.jpeg'); 
+    --shadow-sm: 0 4px 16px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 24px 48px rgba(0, 0, 0, 0.6);
+    --nav-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+
+    --scrollbar-thumb: rgba(255, 255, 255, 0.2);
+    --scrollbar-thumb-hover: rgba(255, 255, 255, 0.4);
+
+    --success: #32d74b;
+    --success-rgb: 50, 215, 75;
+    --danger: #ff453a;
+    --danger-rgb: 255, 69, 58;
+
+    --surface-hover: rgba(255, 255, 255, 0.08);
+    --surface-hover-shadow:
+        inset 0 2px 4px rgba(0, 0, 0, 0.1),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+
+    /* Inner writing card: darker glass inset against the panel */
+    --editor-surface: rgba(3, 3, 5, 0.86);
+    --editor-ink: var(--ink);
+    --editor-muted: var(--muted);
+
+    background-color: #000000;
+    background-image: url('/abstract.jpeg');
 }
 
-/* 3. Ocean Theme
-*/
 body[data-theme='ocean'] {
-  --ink: #E0F7F7; 
-  --ink-rgb: 224, 247, 247;
-  --muted: rgba(224, 247, 247, 0.6);
-  
-  --panel: rgba(0, 20, 30, 0.3); 
-  --card-bg: rgba(0, 5, 15, 0.45);
-  --nav-bg: rgba(0, 15, 25, 0.5); 
-  --input-bg: rgba(255, 255, 255, 0.05);
-  --overlay: rgba(0, 15, 25, 0.7);
+    --ink: #e0f7f7;
+    --muted: rgba(224, 247, 247, 0.6);
 
-  --accent: #2EE5E5; 
-  --accent-rgb: 46, 229, 229;
-  --accent-ink: #051A1A;
-  --accent-soft: rgba(46, 229, 229, 0.15);
-  --terracotta: #2EE5E5; 
-  --accent-gradient-end: #1BA3A3; 
+    --panel: rgba(0, 20, 30, 0.3);
+    --card-bg: rgba(0, 5, 15, 0.45);
+    --nav-bg: rgba(0, 15, 25, 0.5);
+    --input-bg: rgba(255, 255, 255, 0.05);
 
-  --border-subtle: rgba(46, 229, 229, 0.15);
-  --border-strong: rgba(46, 229, 229, 0.3); 
-  --nav-border: rgba(46, 229, 229, 0.1);
+    --accent: #2ee5e5;
+    --accent-rgb: 46, 229, 229;
+    --accent-ink: #051a1a;
+    --accent-soft: rgba(46, 229, 229, 0.15);
 
-  --shadow-sm: 0 4px 16px rgba(0, 10, 15, 0.4);
-  --shadow-md: 0 24px 48px rgba(0, 10, 15, 0.7);
-  --shadow-accent: 0 8px 24px rgba(46, 229, 229, 0.2);
-  --nav-shadow: 0 8px 32px rgba(0, 10, 15, 0.5);
+    --border-subtle: rgba(46, 229, 229, 0.15);
+    --border-strong: rgba(46, 229, 229, 0.3);
+    --nav-border: rgba(46, 229, 229, 0.1);
 
-  --scrollbar-thumb: rgba(46, 229, 229, 0.2);
-  --scrollbar-thumb-hover: rgba(46, 229, 229, 0.4);
-  --tooltip-bg: rgba(0, 20, 30, 0.85);
-  --tooltip-text: #E0F7F7;
-  --success: #2EE5E5; 
-  
-  --warm-cream: rgba(255, 255, 255, 0.02);
-  --warm-beige: rgba(255, 255, 255, 0.04);
+    --shadow-sm: 0 4px 16px rgba(0, 10, 15, 0.4);
+    --shadow-md: 0 24px 48px rgba(0, 10, 15, 0.7);
+    --nav-shadow: 0 8px 32px rgba(0, 10, 15, 0.5);
 
-  background-color: #020C12;
-  background-image: url('/blue4.jpeg'); 
+    --scrollbar-thumb: rgba(46, 229, 229, 0.2);
+    --scrollbar-thumb-hover: rgba(46, 229, 229, 0.4);
+
+    --success: #2ee5e5;
+    --success-rgb: 46, 229, 229;
+    --danger: #ff6b6b;
+    --danger-rgb: 255, 107, 107;
+
+    --surface-hover: rgba(46, 229, 229, 0.06);
+    --surface-hover-shadow:
+        inset 0 2px 4px rgba(0, 0, 0, 0.1),
+        inset 0 0 0 1px rgba(46, 229, 229, 0.05);
+
+    /* Inner writing card: deep ocean glass inset against the panel */
+    --editor-surface: rgba(0, 3, 10, 0.85);
+    --editor-ink: var(--ink);
+    --editor-muted: var(--muted);
+
+    background-color: #020c12;
+    background-image: url('/blue4.jpeg');
 }
 
-/* 4. Nature Theme (TODO: Update this to say Indoors Theme or something.)
-*/
 body[data-theme='nature'] {
-  --ink: #E8F5E9; 
-  --ink-rgb: 232, 245, 233;
-  --muted: rgba(232, 245, 233, 0.6);
-  
-  --panel: rgba(10, 30, 15, 0.3); 
-  --card-bg: rgba(0, 10, 5, 0.45); 
-  --nav-bg: rgba(5, 20, 10, 0.5); 
-  --input-bg: rgba(255, 255, 255, 0.05);
-  --overlay: rgba(5, 20, 10, 0.7);
+    --ink: #e8f5e9;
+    --muted: rgba(232, 245, 233, 0.6);
 
-  --accent: #5EEA7A; 
-  --accent-rgb: 94, 234, 122;
-  --accent-ink: #051A0A;
-  --accent-soft: rgba(94, 234, 122, 0.15);
-  --terracotta: #5EEA7A; 
-  --accent-gradient-end: #3BA852; 
+    --panel: rgba(10, 30, 15, 0.3);
+    --card-bg: rgba(0, 10, 5, 0.45);
+    --nav-bg: rgba(5, 20, 10, 0.5);
+    --input-bg: rgba(255, 255, 255, 0.05);
 
-  --border-subtle: rgba(94, 234, 122, 0.15);
-  --border-strong: rgba(94, 234, 122, 0.3); 
-  --nav-border: rgba(94, 234, 122, 0.1);
+    --accent: #5eea7a;
+    --accent-rgb: 94, 234, 122;
+    --accent-ink: #051a0a;
+    --accent-soft: rgba(94, 234, 122, 0.15);
 
-  --shadow-sm: 0 4px 16px rgba(0, 15, 5, 0.4);
-  --shadow-md: 0 24px 48px rgba(0, 15, 5, 0.7);
-  --shadow-accent: 0 8px 24px rgba(94, 234, 122, 0.2);
-  --nav-shadow: 0 8px 32px rgba(0, 15, 5, 0.5);
+    --border-subtle: rgba(94, 234, 122, 0.15);
+    --border-strong: rgba(94, 234, 122, 0.3);
+    --nav-border: rgba(94, 234, 122, 0.1);
 
-  --scrollbar-thumb: rgba(94, 234, 122, 0.2);
-  --scrollbar-thumb-hover: rgba(94, 234, 122, 0.4);
-  --tooltip-bg: rgba(10, 30, 15, 0.85);
-  --tooltip-text: #E8F5E9;
-  --success: #5EEA7A; 
-  
-  --warm-cream: rgba(255, 255, 255, 0.02);
-  --warm-beige: rgba(255, 255, 255, 0.04);
+    --shadow-sm: 0 4px 16px rgba(0, 15, 5, 0.4);
+    --shadow-md: 0 24px 48px rgba(0, 15, 5, 0.7);
+    --nav-shadow: 0 8px 32px rgba(0, 15, 5, 0.5);
 
-  background-color: #040D07;
-  background-image: url('/nature2.jpeg'); 
+    --scrollbar-thumb: rgba(94, 234, 122, 0.2);
+    --scrollbar-thumb-hover: rgba(94, 234, 122, 0.4);
+
+    --success: #5eea7a;
+    --success-rgb: 94, 234, 122;
+    --danger: #ff5547;
+    --danger-rgb: 255, 85, 71;
+
+    --surface-hover: rgba(94, 234, 122, 0.06);
+    --surface-hover-shadow:
+        inset 0 2px 4px rgba(0, 0, 0, 0.1),
+        inset 0 0 0 1px rgba(94, 234, 122, 0.05);
+
+    /* Inner writing card: forest-dark glass inset against the panel */
+    --editor-surface: rgba(1, 5, 2, 0.84);
+    --editor-ink: var(--ink);
+    --editor-muted: var(--muted);
+
+    background-color: #040d07;
+    background-image: url('/nature2.jpeg');
+}
+
+/* Component overrides scoped to dark themes */
+
+body[data-theme='dark'] .glass-select-wrapper {
+    background: rgba(255, 255, 255, 0.04);
+    box-shadow: var(--shadow-sm), inset 0 1px 1px rgba(255, 255, 255, 0.1);
 }
