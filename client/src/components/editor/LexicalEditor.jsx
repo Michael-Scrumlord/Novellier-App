@@ -1,24 +1,33 @@
-import React, { useEffect, useRef, useCallback } from 'react';
-import { LexicalComposer } from '@lexical/react/LexicalComposer';
-import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
-import { ContentEditable } from '@lexical/react/LexicalContentEditable';
-import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
-import { AutoFocusPlugin } from '@lexical/react/LexicalAutoFocusPlugin';
-import { ListPlugin } from '@lexical/react/LexicalListPlugin';
-import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin';
-import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import { useEffect, useRef, useState } from 'react';
 import {
-    $getRoot, $getSelection, $isRangeSelection,
-    FORMAT_TEXT_COMMAND, FORMAT_ELEMENT_COMMAND,
-    UNDO_COMMAND, REDO_COMMAND,
-    $createParagraphNode, $createTextNode
-} from 'lexical';
-import { $setBlocksType, $patchStyleText } from '@lexical/selection';
-import { HeadingNode, QuoteNode, $createHeadingNode, $createQuoteNode } from '@lexical/rich-text';
-import { ListNode, ListItemNode, INSERT_ORDERED_LIST_COMMAND, INSERT_UNORDERED_LIST_COMMAND } from '@lexical/list';
-import { AutoLinkNode, LinkNode, TOGGLE_LINK_COMMAND } from '@lexical/link';
-import './LexicalEditor.css'; 
-import { EDITOR_FONTS, EDITOR_FONT_SIZES } from '../../constants/typography.js';
+    LexicalComposer,
+    RichTextPlugin,
+    ContentEditable,
+    HistoryPlugin,
+    AutoFocusPlugin,
+    ListPlugin,
+    LinkPlugin,
+    TabIndentationPlugin,
+    useLexicalComposerContext,
+    $getRoot,
+    $createParagraphNode,
+    $createTextNode,
+    $getSelection,
+    $isRangeSelection,
+    KEY_TAB_COMMAND,
+    COMMAND_PRIORITY_LOW,
+    $createTabNode,
+    TabNode,
+    HeadingNode,
+    QuoteNode,
+    ListNode,
+    ListItemNode,
+    AutoLinkNode,
+    LinkNode,
+} from '../../lib/lexical-bundle.js';
+import LexicalToolbar from './LexicalToolbar.jsx';
+import { EDITOR_MARGIN_PRESETS } from '../../constants/typography.js';
+import './LexicalEditor.css';
 
 const editorConfig = {
     namespace: 'NovellierEditor',
@@ -31,117 +40,24 @@ const editorConfig = {
         },
         paragraph: 'editor-paragraph',
         heading: {
-            h1: 'editor-h1', h2: 'editor-h2', h3: 'editor-h3',
+            h1: 'editor-h1',
+            h2: 'editor-h2',
+            h3: 'editor-h3',
         },
         list: {
-            ul: 'editor-ul', ol: 'editor-ol', listitem: 'editor-listitem',
+            ul: 'editor-ul',
+            ol: 'editor-ol',
+            listitem: 'editor-listitem',
         },
         quote: 'editor-quote',
         link: 'editor-link',
     },
-    nodes: [HeadingNode, ListNode, ListItemNode, QuoteNode, AutoLinkNode, LinkNode],
+    nodes: [HeadingNode, ListNode, ListItemNode, QuoteNode, AutoLinkNode, LinkNode, TabNode],
     onError: (error) => console.error('Lexical Engine Error:', error),
 };
 
-function SpatialToolbarPlugin() {
-    const [editor] = useLexicalComposerContext();
-
-    const formatText = (format) => editor.dispatchCommand(FORMAT_TEXT_COMMAND, format);
-    const formatAlign = (alignment) => editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, alignment);
-    
-    const applyStyle = useCallback((styleProperty, value) => {
-        editor.update(() => {
-            const selection = $getSelection();
-            if ($isRangeSelection(selection)) {
-                $patchStyleText(selection, { [styleProperty]: value });
-            }
-        });
-    }, [editor]);
-
-    const formatBlock = (blockType) => {
-        editor.update(() => {
-            const selection = $getSelection();
-            if (!$isRangeSelection(selection)) return;
-            if (blockType === 'paragraph') $setBlocksType(selection, () => $createParagraphNode());
-            else if (blockType.startsWith('h')) $setBlocksType(selection, () => $createHeadingNode(blockType));
-            else if (blockType === 'quote') $setBlocksType(selection, () => $createQuoteNode());
-        });
-    };
-
-    return (
-        <div className="editor-toolbar glass-card">
-            {/* History Group */}
-            <div className="toolbar-group">
-                <button className="btn btn--glass btn--icon" onClick={() => editor.dispatchCommand(UNDO_COMMAND, undefined)} title="Undo">↺</button>
-                <button className="btn btn--glass btn--icon" onClick={() => editor.dispatchCommand(REDO_COMMAND, undefined)} title="Redo">↻</button>
-            </div>
-
-            <div className="toolbar-divider" />
-
-            {/* Typography Group */}
-            <div className="toolbar-group">
-              <select className="spatial-select spatial-select--small" onChange={(e) => formatBlock(e.target.value)} defaultValue="paragraph">
-                <option value="paragraph">Normal Text</option>
-                <option value="h1">Heading 1</option>
-                <option value="h2">Heading 2</option>
-                <option value="quote">Quote</option>
-              </select>
-              
-              {/* Font Family Dropdown */}
-              <select className="spatial-select spatial-select--small" onChange={(e) => applyStyle('font-family', e.target.value)} defaultValue="inherit">
-                {EDITOR_FONTS.map(font => (
-                  <option key={font.value} value={font.value}>{font.label}</option>
-                ))}
-              </select>
-
-              {/* Font Size Dropdown */}
-              <select className="spatial-select spatial-select--small" onChange={(e) => applyStyle('font-size', e.target.value)} defaultValue="16px">
-                {EDITOR_FONT_SIZES.map(size => (
-                  <option key={size.value} value={size.value}>{size.label}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="toolbar-divider" />
-
-            {/* Formatting Group */}
-            <div className="toolbar-group">
-                <button className="btn btn--glass btn--icon" onClick={() => formatText('bold')} title="Bold">B</button>
-                <button className="btn btn--glass btn--icon" onClick={() => formatText('italic')} title="Italic" style={{fontStyle: 'italic'}}>I</button>
-                <button className="btn btn--glass btn--icon" onClick={() => formatText('underline')} title="Underline" style={{textDecoration: 'underline'}}>U</button>
-                <button className="btn btn--glass btn--icon" onClick={() => formatText('strikethrough')} title="Strikethrough" style={{textDecoration: 'line-through'}}>S</button>
-            </div>
-
-            <div className="toolbar-divider" />
-
-            {/* Color Group */}
-            <div className="toolbar-group">
-                <label className="color-picker-wrapper" title="Text Color">
-                    <span className="color-picker-icon">A</span>
-                    <input type="color" className="color-input" onChange={(e) => applyStyle('color', e.target.value)} />
-                </label>
-                <label className="color-picker-wrapper" title="Highlight Color">
-                    <span className="color-picker-icon" style={{background: 'var(--accent-soft)'}}>H</span>
-                    <input type="color" className="color-input" onChange={(e) => applyStyle('background-color', e.target.value)} />
-                </label>
-            </div>
-
-            <div className="toolbar-divider" />
-
-            {/* Alignment Group */}
-            <div className="toolbar-group">
-              <button className="btn btn--glass btn--icon" onClick={() => formatAlign('left')} title="Align Left">⬚</button>
-              <button className="btn btn--glass btn--icon" onClick={() => formatAlign('center')} title="Align Center">⬒</button>
-              <button className="btn btn--glass btn--icon" onClick={() => formatAlign('right')} title="Align Right">⬏</button>
-              <button className="btn btn--glass btn--icon" onClick={() => editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined)} title="Bullet List">•</button>
-            </div>
-        </div>
-    );
-}
-
 function EditorSyncPlugin({ value, onChange }) {
     const [editor] = useLexicalComposerContext();
-    
     const lastEditorStateString = useRef(null);
 
     useEffect(() => {
@@ -149,14 +65,13 @@ function EditorSyncPlugin({ value, onChange }) {
             if (dirtyElements.size === 0 && dirtyLeaves.size === 0) return;
 
             const stringifiedState = JSON.stringify(editorState.toJSON());
-            
             lastEditorStateString.current = stringifiedState;
-            
+
             if (typeof onChange === 'function') {
                 onChange(stringifiedState);
-          }
+            }
         });
-  }, [editor, onChange]);
+    }, [editor, onChange]);
 
     useEffect(() => {
         if (value === lastEditorStateString.current) return;
@@ -176,11 +91,14 @@ function EditorSyncPlugin({ value, onChange }) {
             editor.update(() => {
                 const root = $getRoot();
                 root.clear();
-                value.split('\n').filter(line => line.trim() !== '').forEach(line => {
-                    const p = $createParagraphNode();
-                    p.append($createTextNode(line));
-                    root.append(p);
-                });
+                value
+                    .split('\n')
+                    .filter((line) => line.trim() !== '')
+                    .forEach((line) => {
+                        const p = $createParagraphNode();
+                        p.append($createTextNode(line));
+                        root.append(p);
+                    });
             });
         }
     }, [editor, value]);
@@ -188,20 +106,82 @@ function EditorSyncPlugin({ value, onChange }) {
     return null;
 }
 
+function TabPlugin() {
+    const [editor] = useLexicalComposerContext();
+
+    useEffect(() => {
+        return editor.registerCommand(
+            KEY_TAB_COMMAND,
+            (event) => {
+                event.preventDefault();
+                editor.update(() => {
+                    const selection = $getSelection();
+                    if ($isRangeSelection(selection)) {
+                        selection.insertNodes([$createTabNode()]);
+                    }
+                });
+                return true;
+            },
+            COMMAND_PRIORITY_LOW
+        );
+    }, [editor]);
+
+    return null;
+}
+
 export default function LexicalEditor({ value, onChange, placeholder }) {
+    const [brightness, setBrightness] = useState(0);
+    const [marginPreset, setMarginPreset] = useState('normal');
+
+    // Toolbar switches to light appearance only when the page is clearly bright.
+    const editorMode = brightness >= 80 ? 'light' : 'dark';
+    const margin = EDITOR_MARGIN_PRESETS.find((p) => p.value === marginPreset) ?? EDITOR_MARGIN_PRESETS[0];
+
+    // Drive page background and text independently so they move in opposite directions.
+    // At 0: black page, near-white lightweight text. At 100: white page, near-black bold text.
+    const pageBg = `hsl(0, 0%, ${brightness}%)`;
+    const textColor = `hsl(0, 0%, ${Math.round((100 - brightness) * 0.92)}%)`;
+    const fontWeight = Math.round(400 + (brightness / 100) * 300);
+
     return (
-        <div className="lexical-wrapper">
-            <LexicalComposer initialConfig={{ ...editorConfig, editorState: () => $getRoot().clear() }}>
-                <SpatialToolbarPlugin />
+        <div
+            className="lexical-wrapper"
+            data-editor-mode={editorMode}
+            style={{
+                '--editor-brightness': brightness,
+                '--page-bg': pageBg,
+                '--editor-text-color': textColor,
+                '--editor-font-weight': fontWeight,
+            }}
+        >
+            <LexicalComposer
+                initialConfig={{ ...editorConfig, editorState: () => $getRoot().clear() }}
+            >
+                <LexicalToolbar
+                    brightness={brightness}
+                    onSetBrightness={setBrightness}
+                    marginPreset={marginPreset}
+                    onSetMarginPreset={setMarginPreset}
+                />
                 <div className="lexical-canvas">
-                    <RichTextPlugin
-                        contentEditable={<ContentEditable className="lexical-input" />}
-                        placeholder={<div className="lexical-placeholder">{placeholder}</div>}
-                    />
+                    <div
+                        className="editor-page"
+                        style={{
+                            '--page-margin-v': `${margin.v}px`,
+                            '--page-margin-h': `${margin.h}px`,
+                        }}
+                    >
+                        <RichTextPlugin
+                            contentEditable={<ContentEditable className="lexical-input" />}
+                            placeholder={<div className="lexical-placeholder">{placeholder}</div>}
+                        />
+                    </div>
                     <HistoryPlugin />
                     <AutoFocusPlugin />
                     <ListPlugin />
                     <LinkPlugin />
+                    <TabIndentationPlugin />
+                    <TabPlugin />
                     <EditorSyncPlugin value={value} onChange={onChange} />
                 </div>
             </LexicalComposer>

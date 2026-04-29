@@ -1,128 +1,132 @@
 .lexical-wrapper {
-  display: flex;
-  flex-direction: column;
-  
-  flex: 1;
+    display: flex;
+    flex-direction: column;
 
-  min-height: 0; 
-  position: relative;
-  overscroll-behavior-y: auto;
-}
+    flex: 1;
 
-.editor-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem;
-  margin-bottom: 1rem;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  
-  border-radius: 16px;
-}
-
-.toolbar-group {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.toolbar-divider {
-  width: 1px;
-  height: 24px;
-  background: var(--border-subtle);
-  margin: 0 0.25rem;
-}
-
-.spatial-select--small {
-  padding: 0.4rem 2rem 0.4rem 0.8rem;
-  font-size: 0.85rem;
-  border-radius: 8px;
-  height: 32px;
-}
-
-.color-picker-wrapper {
-  position: relative;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  overflow: hidden;
-  cursor: pointer;
-  border: 1px solid var(--border-subtle);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.05);
-  transition: all 0.2s ease;
-}
-
-.color-picker-wrapper:hover {
-  background: var(--accent-soft);
-  border-color: var(--terracotta);
-}
-
-.color-picker-icon {
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--ink);
-  pointer-events: none; 
-}
-
-.color-input {
-  position: absolute;
-  opacity: 0;
-  width: 100%;
-  height: 100%;
-  cursor: pointer;
+    min-height: 0;
+    position: relative;
+    overscroll-behavior-y: auto;
 }
 
 .lexical-canvas {
-  flex: 1;
-  position: relative;
-  background: transparent;
-  cursor: text;
-  
-  overflow-y: auto;
-  min-height: 0; 
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+    cursor: text;
+    background: transparent;
+    padding-bottom: 3rem;
 }
-.lexical-canvas::-webkit-scrollbar {
-  width: 6px;
+
+.editor-page {
+    max-width: 816px;        /* US Letter width at 96 dpi */
+    min-height: 1056px;      /* US Letter height at 96 dpi */
+    margin: 28px auto;
+    position: relative;
+    background: var(--page-bg, #000000);
+    border-radius: 2px;
+    padding: var(--page-margin-v, 96px) var(--page-margin-h, 96px);
+    transition: background 0.1s ease;
 }
-.lexical-canvas::-webkit-scrollbar-thumb {
-  background: var(--border-subtle);
-  border-radius: 10px;
+
+/* Corner-only accent outline — fades to invisible along the middle of each edge. */
+/* Two intersecting gradients (horizontal + vertical) leave only the four corners opaque. */
+.editor-page::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 2px;
+    border: 1px solid rgba(var(--accent-rgb), 0.32);
+    pointer-events: none;
+
+    -webkit-mask:
+        linear-gradient(to right,  black 0%, transparent 100px, transparent calc(100% - 100px), black 100%),
+        linear-gradient(to bottom, black 0%, transparent 100px, transparent calc(100% - 100px), black 100%);
+    -webkit-mask-composite: source-in;
+    mask:
+        linear-gradient(to right,  black 0%, transparent 100px, transparent calc(100% - 100px), black 100%),
+        linear-gradient(to bottom, black 0%, transparent 100px, transparent calc(100% - 100px), black 100%);
+    mask-composite: intersect;
 }
-.lexical-canvas::-webkit-scrollbar-thumb:hover {
-  background: var(--muted);
-}
+
 .lexical-input {
-  min-height: 100%;
-  outline: none;
-  font-size: 1.05rem;
-  line-height: 1.7;
-  color: var(--ink);
-  padding-bottom: 4rem; 
+    min-height: 100%;
+    outline: none;
+    font-size: 1.075rem;
+    line-height: 1.72;
+    color: var(--editor-text-color, var(--ink));
+    font-weight: var(--editor-font-weight, 400);
+    letter-spacing: -0.003em;
+    padding-bottom: 4rem;
+    caret-color: var(--accent);
+    transition: color 0.1s ease, font-weight 0.1s ease;
 }
 
 .lexical-placeholder {
-  position: absolute;
-  top: 0;
-  left: 0;
-  color: var(--muted);
-  pointer-events: none;
-  font-size: 1.05rem;
-  font-style: italic;
+    position: absolute;
+    /* Tracks the page's CSS-variable margins so it aligns with real text */
+    top: var(--page-margin-v, 96px);
+    left: var(--page-margin-h, 96px);
+    color: var(--muted);
+    pointer-events: none;
+    font-size: 1.075rem;
+    font-style: italic;
 }
 
-.editor-paragraph { margin: 0 0 1.5em 0; }
-.editor-h1 { font-size: 2em; font-weight: 700; margin: 1em 0 0.5em 0; }
-.editor-h2 { font-size: 1.5em; font-weight: 600; margin: 1em 0 0.5em 0; }
+.editor-paragraph {
+    margin: 0 0 1em 0;
+}
+
+.text-bold { font-weight: bold; }
+.text-italic { font-style: italic; }
+.text-underline { text-decoration: underline; }
+.text-strikethrough { text-decoration: line-through; }
+.text-underline.text-strikethrough { text-decoration: underline line-through; }
+
+/* Drop cap on the very first paragraph of a chapter */
+.lexical-input > .editor-paragraph:first-of-type::first-letter {
+    font-weight: 300;
+    font-size: 3.2em;
+    float: left;
+    line-height: 0.85;
+    padding: 6px 10px 0 0;
+    color: var(--editor-text-color, var(--ink));
+    text-shadow:
+        0 0 8px rgba(var(--accent-rgb), 0.7),
+        0 0 18px rgba(var(--accent-rgb), 0.4),
+        0 0 32px rgba(var(--accent-rgb), 0.2);
+}
+
+.editor-h1 {
+    font-size: 2em;
+    font-weight: 700;
+    margin: 1em 0 0.5em 0;
+}
+
+.editor-h2 {
+    font-size: 1.5em;
+    font-weight: 600;
+    margin: 1em 0 0.5em 0;
+}
+
 .editor-quote {
-  border-left: 3px solid var(--terracotta);
-  padding-left: 1rem;
-  color: var(--muted);
-  font-style: italic;
-  margin: 1.5em 0;
+    border-left: 3px solid var(--accent);
+    padding-left: 1rem;
+    color: var(--muted);
+    font-style: italic;
+    margin: 1.5em 0;
+}
+
+/* Light editor mode: surface and toolbar tokens (applies at brightness >= 80) */
+
+.lexical-wrapper[data-editor-mode='light'] {
+    --ink: #1d1d1f;
+    --muted: rgba(29, 29, 31, 0.48);
+}
+
+.lexical-wrapper[data-editor-mode='light'] .editor-page::before {
+    border-color: rgba(var(--accent-rgb), 0.75);
+    border-width: 1.5px;
+    /* drop-shadow applies after the mask, so the glow traces only the visible corner segments */
+    filter: drop-shadow(0 0 6px rgba(var(--accent-rgb), 0.35));
 }

@@ -1,85 +1,145 @@
+import { useStoryContext } from '../../contexts/StoryContext.jsx';
+import { useEditorUIContext } from '../../contexts/EditorUIContext.jsx';
 import LexicalEditor, { getWordCount } from './LexicalEditor';
-//import TitleEditor from './TitleEditor';
-//import ChapterHeadingEditor from './ChapterHeadingEditor';
+import './StoryEditor.css';
 
-export default function StoryEditor({
-  storyCtx,
-  modelCtx,
-  aiCtx,
-  models,
-  onSave,
-  onSuggest,
-  onOpenBookView
-}) {
-const { 
-    title, setTitle, 
-    storyTitleHtml, setStoryTitleHtml,
-    chapterHeadingHtml, setChapterHeadingHtml,
-    sections, 
-    setSectionContentAtIndex,
-    selectedBeatIndex, selectedChapterIndex, editingMode,
-    isSaving, isIndexing, getGroupedBeats
-  } = storyCtx;
+function getEyebrowText(editingMode, currentBeat) {
+    if (editingMode === 'title') return 'Editing · Story Title';
+    if (editingMode === 'chapterHeading') return 'Editing · Chapter Heading Template';
+    if (currentBeat?.title) return `Editing · ${currentBeat.title}`;
+    return 'Editing · Draft';
+}
 
-  const { selectedModel, setModel, modelPulling, modelPullStatus } = modelCtx;
-  const { feedbackType, feedbackOptions, setFeedbackType, isSuggesting } = aiCtx;
+function emphasizeMidWord(title) {
+    if (!title || typeof title !== 'string') return title;
+    const tokens = title.trim().split(/\s+/);
+    if (tokens.length < 3) return title;
 
-  const beats = getGroupedBeats(sections);
-  const currentBeat = beats[selectedBeatIndex];
-  const currentChapter = currentBeat?.chapters[selectedChapterIndex];
-  const sectionIndex = currentChapter?.index ?? 0;
-  const currentSection = sections[sectionIndex];
+    const middleIndex = Math.floor(tokens.length / 2);
+    return tokens.map((token, idx) => {
+        if (idx === middleIndex) {
+            return <em key={idx}>{token}</em>;
+        }
+        if (idx === 0) return token;
+        return ` ${token}`;
+    }).reduce((acc, node, idx) => {
+        if (idx === 0) return [node];
+        if (typeof node === 'string') return [...acc, node];
+        return [...acc, ' ', node];
+    }, []);
+}
 
-  const wordCount = currentSection ? getWordCount(currentSection.content) : 0;
+function EditorHeader({ eyebrow, title, sub, onOpenBookView, onSave, isSaving }) {
+    return (
+        <header className="story-editor__head row-between">
+            <div className="flex-col gap-1">
+                <div className="story-editor__eyebrow">{eyebrow}</div>
+                <h1 className="story-editor__title">{title}</h1>
+                {sub && <div className="story-editor__sub">{sub}</div>}
+            </div>
 
-  // Determine the dynamic header text
-  // There's some kind of bug here, make sure to check it out later. Raise an issue if you see it.
-  const getHeaderText = () => {
-    if (editingMode === 'title') return 'Story Title';
-    if (editingMode === 'chapterHeading') return 'Chapter Heading Template';
-    return currentBeat?.title || 'Draft';
-  };
+            <div className="story-editor__actions row">
+                <button className="btn btn--glass" onClick={onOpenBookView} title="Fullscreen book view">
+                    Book View
+                </button>
+                <button className="btn btn--primary" onClick={onSave} disabled={isSaving}>
+                    {isSaving ? 'Saving...' : 'Save'}
+                </button>
+            </div>
+        </header>
+    );
+}
 
-return (
-  <section className="glass-window" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>      
-      {/* The Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.5rem', borderBottom: '1px solid var(--border-subtle)' }}>
-        <div>
-          <h3 className="text-heading" style={{ fontSize: '1.2rem' }}>Editing</h3>
-          <p className="text-muted" style={{ fontSize: '0.85rem' }}>{getHeaderText()}</p>
-        </div>
-        
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button className="btn btn--glass" onClick={onOpenBookView} title="Fullscreen book view">
-            Book View
-          </button>
-          <button className="btn btn--primary" onClick={onSave} disabled={isSaving}>
-            {isSaving ? 'Saving...' : 'Save'}
-          </button>
-        </div>
-      </div>
+function ChapterMeta({ chapterLabel, badgeLabel, hint }) {
+    return (
+        <>
+            <div className="story-editor__chapter-row">
+                <h2>{chapterLabel}</h2>
+                {badgeLabel && <span className="story-editor__badge">{badgeLabel}</span>}
+            </div>
+            {hint && <p className="story-editor__hint">{hint}</p>}
+        </>
+    );
+}
 
-      {/* The Editor Canvas */}
-      <div className="glass-card" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '1.5rem', minHeight: 0, margin: '1.5rem' }}>
-        <div style={{ marginBottom: '1rem' }}>
-          <h4 className="text-heading">{currentSection?.title || 'Draft'}</h4>
-          <p className="text-muted" style={{ fontSize: '0.85rem' }}>{currentSection?.guidance}</p>
-        </div>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          {currentSection && (
-            <LexicalEditor
-              value={currentSection.content}
-              onChange={(newContent) => setSectionContentAtIndex(sectionIndex, newContent)}
-              placeholder="Draft this chapter..."
+export default function StoryEditor({ onSave, onOpenBookView }) {
+    const {
+        sections,
+        setSectionContentAtIndex,
+        isSaving,
+        saveStory,
+        currentStory,
+    } = useStoryContext();
+    const {
+        selectedBeatIndex,
+        selectedChapterIndex,
+        editingMode,
+        groupedBeats,
+    } = useEditorUIContext();
+
+    const beats = groupedBeats || [];
+    const currentBeat = beats[selectedBeatIndex];
+    const currentChapter = currentBeat?.chapters[selectedChapterIndex];
+    const sectionIndex = currentChapter?.index ?? 0;
+    const currentSection = sections[sectionIndex];
+
+    const eyebrow = getEyebrowText(editingMode, currentBeat);
+    const headerTitle = emphasizeMidWord(currentStory?.title || 'Untitled');
+
+    const chapterNumber = (currentChapter?.indexInBeat ?? selectedChapterIndex) + 1;
+    const chapterLabel = currentChapter?.title || `Chapter ${chapterNumber}`;
+    const badgeLabel = 'Draft';
+
+    let headerContext = null;
+    if (editingMode === 'chapter' && currentBeat?.title) {
+        headerContext = `${currentBeat.title} · Chapter ${chapterNumber}`;
+    } else if (editingMode === 'title') {
+        headerContext = 'Story Title';
+    } else if (editingMode === 'chapterHeading') {
+        headerContext = 'Chapter Heading';
+    }
+
+    const handleSave = onSave || (() => saveStory());
+
+    const wordCount = getWordCount(currentSection?.content);
+
+    return (
+        <section className="spatial-sidebar story-editor">
+            <EditorHeader
+                eyebrow={eyebrow}
+                title={headerTitle}
+                sub={headerContext}
+                onOpenBookView={onOpenBookView}
+                onSave={handleSave}
+                isSaving={isSaving}
             />
-          )}
-        </div>
-      </div>
 
-      <div style={{ padding: '0.75rem 1.5rem', borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--muted)' }}>
-        <span>{editingMode === 'chapter' ? wordCount : 0} words</span>
-        <span>{isIndexing ? 'Indexing memory...' : 'Memory synced'}</span>
-      </div>
-    </section>
-  );
+            <div className="story-editor__writing-area">
+                <div className="story-editor__writing-content">
+                    <ChapterMeta
+                        chapterLabel={chapterLabel}
+                        badgeLabel={badgeLabel}
+                        hint={currentSection?.guidance}
+                    />
+
+                    <div className="story-editor__canvas col-fill">
+                        {currentSection && (
+                            <LexicalEditor
+                                value={currentSection.content}
+                                onChange={(newContent) => setSectionContentAtIndex(sectionIndex, newContent)}
+                                placeholder="Draft this chapter..."
+                            />
+                        )}
+                    </div>
+                </div>
+
+                <div className="story-editor__status">
+                    <span className="story-editor__status-word-count">{wordCount} words</span>
+                    <span className="story-editor__status-save">
+                        {isSaving ? 'Saving…' : 'Memory synced'}
+                    </span>
+                </div>
+            </div>
+        </section>
+    );
 }

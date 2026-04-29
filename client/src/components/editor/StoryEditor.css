@@ -1,0 +1,195 @@
+.story-editor {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    padding: 0;
+}
+
+/* Outer chrome adapts when the writing surface shifts to light mode */
+.story-editor:has([data-editor-mode='light']) {
+    background: rgba(248, 248, 252, 0.90);
+    border-color: rgba(0, 0, 0, 0.07);
+    box-shadow:
+        0 24px 48px rgba(0, 0, 0, 0.07),
+        inset 0 1px 1px rgba(255, 255, 255, 0.95);
+    --ink: #1d1d1f;
+    --muted: rgba(29, 29, 31, 0.55);
+}
+
+.story-editor:has([data-editor-mode='light']) .story-editor__head {
+    border-bottom-color: rgba(0, 0, 0, 0.07);
+}
+.story-editor__head {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-subtle);
+    gap: 1.5rem;
+    flex-shrink: 0;
+}
+
+.story-editor__eyebrow {
+    font: 500 10px/1 'Inter', system-ui, sans-serif;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+}
+
+.story-editor__title {
+    font-weight: 300;
+    font-size: 32px;
+    margin: 0;
+    letter-spacing: -0.01em;
+    line-height: 1;
+    color: var(--ink);
+}
+
+.story-editor__title em {
+    font-style: italic;
+    color: var(--accent);
+    font-weight: 400;
+}
+
+.story-editor__sub {
+    font-size: 12px;
+    color: var(--ink);
+    margin: 7px 0 0;
+    letter-spacing: 0.015em;
+    font-style: italic;
+    opacity: 0.85;
+}
+.story-editor__actions {
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+/* Writing area — the dark inset card */
+
+.story-editor__writing-area {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    font-family: 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
+    /* Scope editor-specific tokens so all descendants adapt automatically */
+    --ink: var(--editor-ink);
+    --muted: var(--editor-muted);
+    background: var(--editor-surface);
+    transition:
+        background 0.3s ease,
+        border-color 0.3s ease,
+        box-shadow 0.3s ease;
+
+    margin: 12px;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    box-shadow:
+        inset 0 1px 1px rgba(255, 255, 255, 0.06),
+        0 4px 16px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+}
+
+.story-editor__writing-content {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 20px 24px 0;
+}
+
+/* Chapter title row: bold heading + monospaced status badge */
+.story-editor__chapter-row {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 6px;
+    flex-shrink: 0;
+}
+
+.story-editor__chapter-row h2 {
+    font-weight: 400;
+    font-size: 24px;
+    margin: 0;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+}
+
+.story-editor__badge {
+    font: 500 10px/1 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    padding: 5px 9px;
+    border-radius: var(--radius-sm);
+    background: var(--accent-soft, rgba(255, 45, 85, 0.12));
+    box-shadow: inset 0 0 0 0.5px var(--accent-soft, rgba(255, 45, 85, 0.18));
+}
+
+.story-editor__hint {
+    font-size: 13px;
+    color: var(--muted);
+    margin: 0 0 16px;
+    font-style: italic;
+    flex-shrink: 0;
+}
+
+.story-editor__canvas { min-height: 0; }
+
+/* Status bar — pinned to the bottom of the writing area */
+.story-editor__status {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    flex-shrink: 0;
+}
+
+.story-editor__status-word-count,
+.story-editor__status-save {
+    font: 500 11px/1 'Inter', system-ui, sans-serif;
+    letter-spacing: 0.06em;
+    color: var(--editor-muted, var(--muted));
+}
+
+
+/* Light editor mode: writing-area surface */
+
+.story-editor__writing-area:has([data-editor-mode='light']) {
+    --editor-surface: rgba(252, 252, 254, 0.92);
+    --editor-ink: #1d1d1f;
+    --editor-muted: rgba(29, 29, 31, 0.48);
+    border-color: rgba(0, 0, 0, 0.07);
+    box-shadow:
+        inset 0 1px 1px rgba(255, 255, 255, 1),
+        0 4px 20px rgba(0, 0, 0, 0.06);
+    transition:
+        background 0.3s ease,
+        border-color 0.3s ease,
+        box-shadow 0.3s ease;
+}
+
+.story-editor__writing-area:has([data-editor-mode='light']) .story-editor__status {
+    border-top-color: rgba(0, 0, 0, 0.07);
+}
+
+@media (max-width: 900px) {
+    .story-editor__head {
+        padding: 16px 18px;
+    }
+    .story-editor__title {
+        font-size: 26px;
+    }
+    .story-editor__chapter-row h2 {
+        font-size: 20px;
+    }
+    .story-editor__writing-area {
+        margin: 8px;
+    }
+    .story-editor__writing-content {
+        padding: 16px 18px 0;
+    }
+    .story-editor__status {
+        padding: 9px 18px;
+    }
+}
