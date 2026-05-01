@@ -1,34 +1,63 @@
-import { useState, useEffect } from 'react';
-import './StorySettingsModal.css';
+import { useState } from 'react';
 import { GENRE_OPTIONS } from '../../constants/genres.js';
+import './StorySettingsModal.css';
 
-export default function StorySettingsModal({
-    story,
-    isOpen,
-    onClose,
-    onSave,
-    onDelete
-}) {
-    const [title, setTitle] = useState('');
-    const [genre, setGenre] = useState('');
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+function DangerZone({ onConfirmDelete }) {
+    const [showConfirm, setShowConfirm] = useState(false);
 
-    useEffect(() => {
-        if (isOpen && story) {
-            setTitle(story.title || '');
-            setGenre(story.genre || '');
-            setShowDeleteConfirm(false); 
-        }
-    }, [isOpen, story]);
+    return (
+        <div className="danger-zone">
+            <div className="danger-zone__text">
+                <h3>Danger Zone</h3>
+                <p>This action cannot be undone. Please be careful.</p>
+            </div>
+            {showConfirm ? (
+                <div className="danger-zone__confirm">
+                    <p>Are you sure? This will erase all content.</p>
+                    <div className="danger-zone__actions">
+                        <button className="btn btn--glass" type="button" onClick={() => setShowConfirm(false)}>
+                            Cancel
+                        </button>
+                        <button className="btn btn--danger" type="button" onClick={onConfirmDelete}>
+                            Yes, Delete
+                        </button>
+                    </div>
+                </div>
+            ) : (
+                <button className="btn btn--danger" type="button" onClick={() => setShowConfirm(true)}>
+                    Delete Story
+                </button>
+            )}
+        </div>
+    );
+}
 
-    if (!isOpen || !story) return null;
+function ModalHeader({ onClose }) {
+    return (
+        <div className="modal__header">
+            <h2>Story Settings</h2>
+            <button
+                className="btn btn--glass btn--icon"
+                type="button"
+                onClick={onClose}
+                aria-label="Close settings"
+            >
+                ✕
+            </button>
+        </div>
+    );
+}
 
-    const handleSubmit = (e) => {
-        e.preventDefault(); 
+function StorySettingsModalContent({ story, onClose, onSave, onDelete }) {
+    const [title, setTitle] = useState(story.title || '');
+    const [genre, setGenre] = useState(story.genre || '');
+
+    const handleSubmit = (event) => {
+        event.preventDefault();
         onSave({
             ...story,
             title: title.trim() || story.title,
-            genre: genre || story.genre
+            genre: genre || story.genre,
         });
         onClose();
     };
@@ -39,32 +68,21 @@ export default function StorySettingsModal({
     };
 
     return (
-        <div className="modal-container">
+        <div className="modal-shell">
             <div className="modal-overlay" onClick={onClose} aria-hidden="true" />
-          
+
             <div className="modal-window" role="dialog" aria-modal="true">
-                <div className="modal__header">
-                    <h2>Story Settings</h2>
-                    <button
-                        className="btn btn--glass btn--icon"
-                        type="button"
-                        onClick={onClose}
-                        aria-label="Close settings"
-                    >
-                      ✕
-                    </button>
-                </div>
+                <ModalHeader onClose={onClose} />
 
                 <form onSubmit={handleSubmit} className="modal__form">
                     <div className="modal__content">
-                      
                         <div className="form-group">
                             <label htmlFor="story-title">Story Title</label>
                             <input
                                 id="story-title"
                                 type="text"
                                 value={title}
-                                onChange={(e) => setTitle(e.target.value)}
+                                onChange={(event) => setTitle(event.target.value)}
                                 placeholder="Enter story title"
                                 required
                             />
@@ -75,54 +93,21 @@ export default function StorySettingsModal({
                             <select
                                 id="story-genre"
                                 value={genre}
-                                onChange={(e) => setGenre(e.target.value)}
+                                onChange={(event) => setGenre(event.target.value)}
                                 className="spatial-select"
                             >
                                 <option value="" disabled>Choose a genre</option>
-                                {GENRE_OPTIONS.map((g) => (
-                                  <option key={g} value={g}>{g}</option>
+                                {GENRE_OPTIONS.map((option) => (
+                                    <option key={option} value={option}>
+                                        {option}
+                                    </option>
                                 ))}
                             </select>
                         </div>
 
                         <div className="modal__divider" />
 
-                        <div className="danger-zone">
-                            <div className="danger-zone__text">
-                                <h3>Danger Zone</h3>
-                                <p>This action cannot be undone. Please be careful.</p>
-                            </div>
-                          
-                            {!showDeleteConfirm ? (
-                              <button
-                                className="btn btn--danger"
-                                type="button"
-                                onClick={() => setShowDeleteConfirm(true)}
-                              >
-                                Delete Story
-                              </button>
-                            ) : (
-                            <div className="danger-zone__confirm">
-                                <p>Are you sure? This will erase all content.</p>
-                                <div className="danger-zone__actions">
-                                    <button
-                                      className="btn btn--glass"
-                                      type="button"
-                                      onClick={() => setShowDeleteConfirm(false)}
-                                    >
-                                      Cancel
-                                    </button>
-                                    <button
-                                      className="btn btn--danger"
-                                      type="button"
-                                      onClick={handleDelete}
-                                    >
-                                      Yes, Delete
-                                    </button>
-                                </div>
-                            </div>
-                          )}
-                        </div>
+                        <DangerZone onConfirmDelete={handleDelete} />
                     </div>
 
                     <div className="modal__footer">
@@ -136,5 +121,18 @@ export default function StorySettingsModal({
                 </form>
             </div>
         </div>
+    );
+}
+
+export default function StorySettingsModal({ story, isOpen, onClose, onSave, onDelete }) {
+    if (!isOpen || !story) return null;
+    return (
+        <StorySettingsModalContent
+            key={story.id}
+            story={story}
+            onClose={onClose}
+            onSave={onSave}
+            onDelete={onDelete}
+        />
     );
 }
