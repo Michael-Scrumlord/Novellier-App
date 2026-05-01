@@ -1,0 +1,16 @@
+.paged-book-modal { z-index: calc(var(--z-modal) + 1); }
+.paged-book-window { width: 95vw; height: 90vh; display: flex; flex-direction: column; position: relative; z-index: 10; }
+.paged-book-header { padding: 1.5rem 2rem; border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; }
+.paged-book-title { font-size: 1.5rem; margin: 0; }
+.paged-book-subtitle { margin: 0; }
+.paged-book-actions { display: flex; gap: 1rem; align-items: center; }
+.paged-book-content { flex: 1; display: flex; background: var(--card-bg); overflow: hidden; }
+.paged-book-page { flex: 1; padding: 3rem 4rem; display: flex; flex-direction: column; }
+.paged-book-page--left { border-right: 1px solid var(--border-subtle); }
+.paged-book-scroll-area { flex: 1; overflow-y: auto; }
+.paged-book-page-num { text-align: center; margin-top: 1rem; }
+.paged-book-footer { padding: 1rem 2rem; border-top: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; }
+.paged-book-footer-actions { display: flex; gap: 1rem; }
+.paged-book-end-msg { text-align: center; margin-top: 5rem; }
+.paged-book-page-content { font-size: 1.1rem; line-height: 1.8; color: var(--ink); }
+.paged-book-block { margin-bottom: 1rem; }
