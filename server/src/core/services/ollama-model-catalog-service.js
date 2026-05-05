@@ -1,29 +1,17 @@
 import { normalizeModelName } from '../domain/ModelNameUtils.js';
 
-/**
- * Core service for the Ollama model catalog.
- *
- * Responsibilities:
- * - Merge installed models with library index data.
- * - Decorate families and variants with runtime-role and download status.
- * - Provide filtered, query-driven catalog views.
- *
- * Design decisions (post Options C + D refactor):
- * - All outbound HTTP and HTML parsing lives in OllamaLibraryAdapter (IOllamaLibraryPort).
- * - Installed model queries delegate to modelManager (IModelManager) — not IAIService.
- * - This service handles only domain logic: decoration, filtering, role matching.
- */
+// Provides core services for the Ollama model catalog.
 export class OllamaModelCatalogService {
-    constructor({ modelManager, ollamaLibraryPort, runtimeModels } = {}) {
+    constructor({ modelManager, ollamaLibraryAdapter, runtimeModels } = {}) {
         this.modelManager = modelManager || null;
-        this.ollamaLibraryPort = ollamaLibraryPort || null;
+        this.ollamaLibraryAdapter = ollamaLibraryAdapter || null;
         this.runtimeModels = runtimeModels || { suggestion: null, summary: null, embedding: null };
     }
 
     async getCatalog(query = '') {
         const installed = await this._getInstalledModelMap();
-        const index = this.ollamaLibraryPort
-            ? await this.ollamaLibraryPort.getLibraryIndex()
+        const index = this.ollamaLibraryAdapter
+            ? await this.ollamaLibraryAdapter.getLibraryIndex()
             : [];
         const normalizedQuery = String(query || '').trim().toLowerCase();
 
@@ -53,11 +41,11 @@ export class OllamaModelCatalogService {
         const installed = await this._getInstalledModelMap();
         const family = normalized.split(':')[0];
 
-        if (!this.ollamaLibraryPort) {
+        if (!this.ollamaLibraryAdapter) {
             return { family, displayName: family, description: '', variants: [], selectedVariant: null, installedVariant: null, active: this._getActiveRoles() };
         }
 
-        const detail = await this.ollamaLibraryPort.getModelDetail(family);
+        const detail = await this.ollamaLibraryAdapter.getModelDetail(family);
 
         const runtimeCandidates = Object.values(this.runtimeModels)
             .map(normalizeModelName)
@@ -97,7 +85,7 @@ export class OllamaModelCatalogService {
         };
     }
 
-    // ─── Private ───────────────────────────────────────────────────────────────
+    // Private helpers
 
     _getActiveRoles() {
         return {
@@ -180,10 +168,7 @@ export class OllamaModelCatalogService {
         );
     }
 
-    /**
-     * Simple RAM estimation from a size tag like '7B', '3.8B'.
-     * Kept inline since it's a lightweight heuristic, not shared infrastructure.
-     */
+    // Simple RAM estimation
     _estimateRamFromSizeTag(sizeTag) {
         const match = String(sizeTag || '')
             .trim()

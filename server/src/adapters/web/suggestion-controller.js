@@ -13,13 +13,10 @@ export default class SuggestionController {
             sections,
             storyId,
             mode,
+            domain, // YouTrack demo — selects prompt strategy (e.g. 'youtrack'); defaults to novel
             feedbackType,
             customPrompt,
-            currentChapterSummary,
-            currentBeatSummary,
-            storySummary,
-            storySummaryShort,
-            storySummaryLong,
+            contextSummaries,
             chapterSummaries,
         } = req.body || {};
 
@@ -32,13 +29,10 @@ export default class SuggestionController {
             storyId,
             model: this.runtimeModels.suggestion,
             mode,
+            domain,
             feedbackType,
             customPrompt,
-            currentChapterSummary,
-            currentBeatSummary,
-            storySummary,
-            storySummaryShort,
-            storySummaryLong,
+            contextSummaries,
             chapterSummaries,
             _meta: {
                 userId: req.user?.id || req.user?.sub || null,
@@ -48,16 +42,10 @@ export default class SuggestionController {
             },
         };
 
-        try {
-            await this._streamSuggestion(req, res, storyText, options);
-        } catch (error) {
-            console.error('[SuggestionController] AI Service Error:', error);
-            return res.status(500).json({ error: 'AI Service Error' });
-        }
+        await this._streamSuggestion(req, res, storyText, options);
     }
 
     async _streamSuggestion(req, res, storyText, options) {
-        // each chunk emits `{ chunk, done }` and the terminal frame sets `done: true`.
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Connection', 'keep-alive');
@@ -66,7 +54,6 @@ export default class SuggestionController {
         let isAborted = false;
         const abortController = new AbortController();
 
-        // Client disconnects abort the upstream AI request to avoid wasted generation work.
         res.on('close', () => {
             if (!res.writableEnded && !isAborted) {
                 isAborted = true;
@@ -75,9 +62,6 @@ export default class SuggestionController {
             }
         });
 
-        // if the socket is full, await its 'drain' event
-        // before resolving so the upstream generator pauses instead of bloating
-        // Node's internal write buffer with frames the slow client can't consume.
         const writeFrame = async (frame) => {
             if (isAborted || res.writableEnded) return;
             const ok = res.write(frame);

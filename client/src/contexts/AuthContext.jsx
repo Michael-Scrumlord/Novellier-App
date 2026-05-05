@@ -1,6 +1,8 @@
 import { createContext, useMemo, useContext, useState, useCallback } from 'react';
 import { authService } from '../services/authService.js';
-import { TOKEN_KEY, USER_KEY } from '../constants/storage.js';
+
+const TOKEN_KEY = 'novellier_token';
+const USER_KEY = 'novellier_user';
 
 const AuthContext = createContext(null);
 

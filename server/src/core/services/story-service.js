@@ -1,11 +1,5 @@
-// Story service
-// Its responsibilities include: enforcing story ownership and auth rules, normalizing story content, delegating AI summary to story summarization service, 
-// delegating vector indexing to story indexing service, and implementing IStoryFactsGateway for AISuggestionService to read/write facts through a narrow, explicitly declared port.
-import { IStoryFactsGateway } from '../ports/IStoryFactsGateway.js';
-
-export class StoryService extends IStoryFactsGateway {
+export class StoryService {
     constructor({ storyRepository, summarizationService, indexingService }) {
-        super();
         if (!storyRepository) {
             throw new Error('StoryService requires storyRepository');
         }

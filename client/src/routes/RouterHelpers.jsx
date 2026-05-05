@@ -29,7 +29,16 @@ export function ProtectedLayout() {
     return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
 }
 
+function getRoleFromToken(token) {
+    if (!token) return null;
+    try {
+        return JSON.parse(atob(token.split('.')[1]))?.role ?? null;
+    } catch {
+        return null;
+    }
+}
+
 export function AdminGuard() {
-    const { user } = useAuthContext();
-    return user?.role === 'admin' ? <Outlet /> : <Navigate to="/home" replace />;
+    const { token } = useAuthContext();
+    return getRoleFromToken(token) === 'admin' ? <Outlet /> : <Navigate to="/home" replace />;
 }

@@ -15,7 +15,6 @@ const PROMPT_TEMPLATES = Object.freeze({
 
 export class StorySummarizationService {
     constructor({ aiService, runtimeModels, summaryConfig, jobQueue } = {}) {
-        super();
         this.aiService = aiService || null;
         this.runtimeModels = runtimeModels || null;
         this.summaryConfig = { ...DEFAULT_SUMMARY_CONFIG, ...(summaryConfig || {}) };
