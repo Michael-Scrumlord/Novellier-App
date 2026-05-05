@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { userService } from '../../services/userService.js';
+import { authService } from '../../services/authService.js';
 import { getDisplayName } from '../../utils/stringUtils.js';
 import ProfileHeader from './ProfileHeader.jsx';
 import ProfileViewFields from './ProfileViewFields.jsx';
@@ -67,7 +67,7 @@ export default function Profile({ user, token, onProfileUpdate }) {
         setSuccess('');
 
         try {
-            const result = await userService.updateSelf(token, user.id, {
+            const result = await authService.updateSelf(token, user.id, {
                 firstName: profileData.firstName,
                 lastName: profileData.lastName,
                 email: profileData.email,

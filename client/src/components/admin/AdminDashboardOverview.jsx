@@ -63,11 +63,11 @@ export default function AdminDashboardOverview({ token }) {
                 <>
                     <div className="glass-stat-grid">
                         <div className="surface-card surface-card--hoverable glass-stat-card">
-                            <span className="eyebrow glass-stat-label">Total Volume Storage</span>
+                            <span className="eyebrow">Total Volume Storage</span>
                             <span className="glass-stat-value">{formatBytes(totalSizeBytes)}</span>
                         </div>
                         <div className="surface-card surface-card--hoverable glass-stat-card">
-                            <span className="eyebrow glass-stat-label">Tracked Volumes</span>
+                            <span className="eyebrow">Tracked Volumes</span>
                             <span className="glass-stat-value">{volumes.length}</span>
                         </div>
                     </div>
