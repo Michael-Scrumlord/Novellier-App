@@ -1,7 +1,8 @@
-// MongoDB adapter for persisted runtime configuration (active model roles and Ollama endpoint).
+// MongoDB adapter for persisted runtime configuration (active model roles, Ollama endpoint, and LLM params).
 // Uses a key/value document structure with upsert so records are created on first write.
 const RUNTIME_MODELS_KEY = 'runtime_models';
 const OLLAMA_ENDPOINT_KEY = 'ollama_endpoint';
+const LLM_MODEL_PARAMS_KEY = 'llm_model_params';
 
 function toModelString(value) {
     if (typeof value !== 'string') return null;
@@ -78,6 +79,30 @@ export default class MongoRuntimeModelConfigRepository {
             {
                 $set: { value, updatedAt: now },
                 $setOnInsert: { key: OLLAMA_ENDPOINT_KEY, createdAt: now },
+            },
+            { upsert: true }
+        );
+
+        return value;
+    }
+
+    async getLlmModelParams() {
+        const collection = await this.getCollection();
+        const record = await collection.findOne({ key: LLM_MODEL_PARAMS_KEY });
+        if (!record?.value || typeof record.value !== 'object') return null;
+        return record.value;
+    }
+
+    async saveLlmModelParams(params) {
+        const collection = await this.getCollection();
+        const value = params && typeof params === 'object' ? params : null;
+        const now = new Date();
+
+        await collection.updateOne(
+            { key: LLM_MODEL_PARAMS_KEY },
+            {
+                $set: { value, updatedAt: now },
+                $setOnInsert: { key: LLM_MODEL_PARAMS_KEY, createdAt: now },
             },
             { upsert: true }
         );

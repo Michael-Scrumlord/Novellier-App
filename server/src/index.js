@@ -18,6 +18,10 @@ async function start() {
         await deps.ollamaEndpointService.hydrate();
     }
 
+    if (deps.llmParamsService?.hydrate) {
+        await deps.llmParamsService.hydrate();
+    }
+
     if (deps.jobQueueCheckpointStore?.load) {
         const previous = await deps.jobQueueCheckpointStore.load();
         if (previous && (previous.running > 0 || previous.pending.length > 0)) {

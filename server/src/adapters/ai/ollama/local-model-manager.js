@@ -1,13 +1,11 @@
-// Ollama implementation of IModelManager. Handles model listing, pull with streamed progress,
-// and removal via the Ollama HTTP API. Pull state is persisted to pullProgressStore so the
-// client can poll for download status without holding a long-lived HTTP connection.
+// Handles model listing, pull with streamed progress, and removal via the Ollama HTTP API.
+// Pull state is persisted to pullProgressStore so the client can poll for download status
+// without holding a long-lived HTTP connection.
 
-import { IModelManager } from '../../../core/ports/IModelManager.js';
 import { TIMEOUTS } from './ollama-config.js';
 
-export class LocalModelManager extends IModelManager {
+export class LocalModelManager {
     constructor({ transport, pullProgressStore }) {
-        super();
         if (!transport) throw new Error('LocalModelManager requires transport');
         if (!pullProgressStore) throw new Error('LocalModelManager requires pullProgressStore');
         this.transport = transport;

@@ -13,7 +13,6 @@ export function getModelSizeScore(modelName) {
     }
 
     const knownSizes = {
-        'gemma2:2b': 2,
         'phi3': 3.8,
         'phi4-mini': 3.8,
         'phi4-mini:3.8b': 3.8,
