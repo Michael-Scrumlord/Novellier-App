@@ -1,290 +1,134 @@
-import { useState, useRef } from "react";
-import { api } from '../../lib/api.js';
-import './Profile.css'
+import { useRef, useState } from 'react';
+import { userService } from '../../services/userService.js';
+import { getDisplayName } from '../../utils/stringUtils.js';
+import ProfileHeader from './ProfileHeader.jsx';
+import ProfileViewFields from './ProfileViewFields.jsx';
+import ProfileEditForm from './ProfileEditForm.jsx';
+import './Profile.css';
 
-export default function Profile ({ user, token, onProfileUpdate}) {
-    const [profileData, setProfileData] = useState({
+const MAX_PICTURE_BYTES = 4 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
+
+function profileDataFromUser(user) {
+    return {
         firstName: user?.firstName || '',
         lastName: user?.lastName || '',
         email: user?.email || '',
-        profilePicture: user?.profilePicture || null
-    });
-    const [isEditing, setIsEditing] = useState(false);
+        profilePicture: user?.profilePicture || null,
+    };
+}
 
-    const [error, setError] = useState('');
+export default function Profile({ user, token, onProfileUpdate }) {
+    const [profileData, setProfileData] = useState(() => profileDataFromUser(user));
+    const [isEditing, setIsEditing] = useState(false);
+    const [pictureError, setPictureError] = useState('');
+    const [saveError, setSaveError] = useState('');
     const [success, setSuccess] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const fileInputRef = useRef(null);
 
-    const getInitials = () => {
-        const name = `${profileData.firstName || ''} ${profileData.lastName || ''}`.trim();
-        if (name) {
-        return name
-            .split(' ')
-            .map((n) => n[0])
-            .join('')
-            .toUpperCase()
-            .slice(0, 2);
-        }
-        return user?.username ? user.username[0].toUpperCase() : 'U';
+    const displayName = getDisplayName(
+        { firstName: profileData.firstName, lastName: profileData.lastName, username: user?.username },
+        'User'
+    );
+
+    const updateField = (field, value) => {
+        setProfileData((prev) => ({ ...prev, [field]: value }));
     };
 
-    const handlePictureSelect = (e) => {
-        const file = e.target.files?.[0];
+    const handlePictureSelect = (event) => {
+        const file = event.target.files?.[0];
         if (!file) return;
 
-        if (file.size > 2 * 1024 * 1024) {
-        setError('Choose an image that is less than 2mb');
-        return;
+        if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
+            setPictureError('Only JPEG, PNG, GIF, and WebP images are allowed.');
+            return;
+        }
+        if (file.size > MAX_PICTURE_BYTES) {
+            setPictureError('Choose an image that is less than 4mb');
+            return;
         }
 
         const reader = new FileReader();
-        reader.onload = (event) => {
-        setProfileData((prev) => ({
-            ...prev,
-            profilePicture: event.target?.result
-        }));
-        setError('');
+        reader.onload = (loadEvent) => {
+            updateField('profilePicture', loadEvent.target?.result);
+            setPictureError('');
         };
         reader.onerror = () => {
-        setError('Error reading the image file');
+            setPictureError('Error reading the image file');
         };
         reader.readAsDataURL(file);
     };
-    const handleSaveProfile = async (e) => {
-        e.preventDefault();
-        setError('');
-        setSuccess('');
+
+    const handleSaveProfile = async (event) => {
+        event.preventDefault();
         setIsSaving(true);
+        setSaveError('');
+        setSuccess('');
 
         try {
-        const updated = await api.updateUser(token, user.id, {
-            firstName: profileData.firstName,
-            lastName: profileData.lastName,
-            email: profileData.email,
-            profilePicture: profileData.profilePicture
-        });
-
-        setSuccess('Profile updated successfully.');
-        setIsEditing(false);
-
-        if (onProfileUpdate) {
-            onProfileUpdate(updated.user);
-        }
+            const result = await userService.updateSelf(token, user.id, {
+                firstName: profileData.firstName,
+                lastName: profileData.lastName,
+                email: profileData.email,
+                profilePicture: profileData.profilePicture,
+            });
+            setSuccess('Profile updated successfully.');
+            setIsEditing(false);
+            onProfileUpdate?.(result.user);
         } catch (err) {
-        console.error('Failed to save profile:', err);
-        setError(err.message || 'Failed to save profile.');
+            setSaveError(err.message || 'Failed to save profile.');
         } finally {
-        setIsSaving(false);
+            setIsSaving(false);
         }
     };
+
     const handleCancel = () => {
-        setProfileData({
-        firstName: user?.firstName || '',
-        lastName: user?.lastName || '',
-        email: user?.email || '',
-        profilePicture: user?.profilePicture || null
-        });
+        setProfileData(profileDataFromUser(user));
         setIsEditing(false);
-        setError('');
+        setSaveError('');
         setSuccess('');
+        setPictureError('');
     };
 
-    const displayName = profileData.firstName || profileData.lastName
-        ? `${profileData.firstName} ${profileData.lastName}`.trim()
-        : user?.username || 'User';
+    const errorMessage = pictureError || saveError;
 
-return (
+    return (
         <section className="panel panel--profile">
-        
-        {/* Unified Spatial Header */}
-        <div className="panel__header panel__header--spatial">
-            <div className="profile__picture-group">
-                <div className="profile__picture">
-                    {profileData.profilePicture ? (
-                        <img
-                            src={profileData.profilePicture}
-                            alt={displayName}
-                            className="profile__picture-img"
-                        />
-                    ) : (
-                        <span className="profile__picture-initials">{getInitials()}</span>
-                    )}
-                </div>
-                <div className="profile__title-group">
-                    <h3>{displayName}</h3>
-                    <p className="profile__subtitle">@{user?.username}</p>
-                </div>
-            </div>
+            <ProfileHeader
+                profilePicture={profileData.profilePicture}
+                displayName={displayName}
+                username={user?.username}
+                isEditing={isEditing}
+                onStartEdit={() => setIsEditing(true)}
+                onChangePictureClick={() => fileInputRef.current?.click()}
+            />
 
-            <div className="profile__header-actions">
+            <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={handlePictureSelect}
+            />
+
+            {errorMessage && <div className="error-message">{errorMessage}</div>}
+            {success && <div className="success-message">{success}</div>}
+
+            <div className="profile__content">
                 {isEditing ? (
-                    <button
-                        type="button"
-                        className="btn btn--glass btn--small"
-                        onClick={() => fileInputRef.current?.click()}
-                    >
-                        Change Picture
-                    </button>
+                    <ProfileEditForm
+                        user={user}
+                        profileData={profileData}
+                        onChangeField={updateField}
+                        onSubmit={handleSaveProfile}
+                        onCancel={handleCancel}
+                        isSaving={isSaving}
+                    />
                 ) : (
-                    <button
-                        type="button"
-                        className="btn btn--primary"
-                        onClick={() => setIsEditing(true)}
-                    >
-                        Edit Profile
-                    </button>
+                    <ProfileViewFields user={user} displayName={displayName} />
                 )}
             </div>
-        </div>
-
-        {/* Hidden File Input */}
-        <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            hidden
-            onChange={handlePictureSelect}
-        />
-
-        {error && <div className="error-message">{error}</div>}
-        {success && <div className="success-message">{success}</div>}
-
-        <div className="profile__content">
-            {isEditing ? (
-                <form onSubmit={handleSaveProfile} className="profile__form">
-                <div className="form-group">
-                <label htmlFor="user-username">Username</label>
-                <input
-                    id="user-username"
-                    type="text"
-                    value={user?.username || ''}
-                    disabled
-                    className="input--disabled"
-                />
-                <p className="form__help">Username cannot be changed.</p>
-                </div>
-
-                <div className="form-row">
-                <div className="form-group">
-                    <label htmlFor="user-firstname">First Name</label>
-                    <input
-                    id="user-firstname"
-                    type="text"
-                    placeholder="John"
-                    value={profileData.firstName}
-                    onChange={(e) =>
-                        setProfileData((prev) => ({
-                        ...prev,
-                        firstName: e.target.value
-                        }))
-                    }
-                    />
-                </div>
-
-                <div className="form-group">
-                    <label htmlFor="user-lastname">Last Name</label>
-                    <input
-                    id="user-lastname"
-                    type="text"
-                    placeholder="Doe"
-                    value={profileData.lastName}
-                    onChange={(e) =>
-                        setProfileData((prev) => ({
-                        ...prev,
-                        lastName: e.target.value
-                        }))
-                    }
-                    />
-                </div>
-                </div>
-
-                <div className="form-group">
-                <label htmlFor="user-email">Email</label>
-                <input
-                    id="user-email"
-                    type="email"
-                    placeholder="john@example.com"
-                    value={profileData.email}
-                    onChange={(e) =>
-                    setProfileData((prev) => ({
-                        ...prev,
-                        email: e.target.value
-                    }))
-                    }
-                />
-                </div>
-
-                <div className="form-group">
-                <label htmlFor="user-uuid">UUID</label>
-                <input
-                    id="user-uuid"
-                    type="text"
-                    value={user?.uuid || ''}
-                    disabled
-                    className="input--disabled"
-                />
-                <p className="form__help">Your unique identifier.</p>
-                </div>
-
-                <div className="profile__actions">
-                <button type="submit" className="btn btn--primary" disabled={isSaving}>
-                    {isSaving ? 'Saving...' : 'Save Changes'}
-                </button>
-                <button
-                    type="button"
-                    className="btn btn--glass"
-                    onClick={handleCancel}
-                    disabled={isSaving}
-                >
-                    Cancel
-                </button>
-                </div>
-            </form>
-            ) : (
-            <div className="profile__view">
-                <div className="profile__field">
-                <label>Username</label>
-                <p>@{user?.username}</p>
-                </div>
-
-                <div className="profile__field">
-                <label>Full Name</label>
-                <p>{displayName}</p>
-                </div>
-
-                <div className="profile__field">
-                <label>Email</label>
-                <p>{user?.email || 'Not provided'}</p>
-                </div>
-
-                <div className="profile__field">
-                <label>UUID</label>
-                <p className="profile__uuid">{user?.uuid}</p>
-                </div>
-
-                <div className="profile__field">
-                <label>Role</label>
-                <span className={`user-list__role user-list__role--${user?.role}`}>
-                    {user?.role}
-                </span>
-                </div>
-
-                <div className="profile__field profile__field--meta">
-                <p>
-                    Created {new Date(user?.createdAt).toLocaleDateString()}
-                </p>
-                {user?.updatedAt && (
-                    <p>
-                    Last updated {new Date(user?.updatedAt).toLocaleDateString()}
-                    </p>
-                )}
-                </div>
-            </div>
-            )}
-        </div>
         </section>
-
-    );    
-
+    );
 }
