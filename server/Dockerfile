@@ -1,24 +1,24 @@
-# Alpine-based Node.js image, this is ideal for its smaller size.
-FROM node:22-alpine
+# --- Stage 1: deps ---
+FROM node:22-alpine AS deps
 WORKDIR /app
-
-# Install curl for health checks and dumb-init for proper signal handling
-RUN apk add --no-cache curl dumb-init
-
-# Copy dependency files first for better layer caching
 COPY package*.json ./
-
-# Install dependencies (cached if package files unchanged)
 RUN npm install --omit=dev && npm cache clean --force
 
-# Copy application source
-COPY . .
+# --- Stage 2: runtime ---
+FROM node:22-alpine AS runtime
+WORKDIR /app
 
-# The server's host port. Change as needed.. 
+RUN apk add --no-cache curl dumb-init
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY package*.json ./
+COPY src ./src
+
 ENV NODE_ENV=production
 ENV PORT=5000
 
 EXPOSE 5000
 
-# Use dumb-init to handle signals properly
+USER node
+
 CMD ["dumb-init", "node", "src/index.js"]
