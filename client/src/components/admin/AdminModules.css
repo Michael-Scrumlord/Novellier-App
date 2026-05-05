@@ -803,3 +803,400 @@
     }
     .vision-conversation-list { max-height: 200px; }
 }
+
+/* ── Glass admin components (moved from utilities.css) ───────── */
+/*
+ * These classes are admin-only. Scoped overrides for dark surfaces
+ * are handled by the existing #admin rules above.
+ */
+
+/* Forms */
+.glass-form-card {
+    padding: var(--space-6);
+    margin-bottom: var(--space-6);
+}
+
+.glass-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.glass-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+}
+
+.glass-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.glass-form-group label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--muted);
+    margin-left: var(--space-1);
+}
+
+.glass-form-actions {
+    margin-top: var(--space-3);
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* Table */
+.glass-table-wrapper {
+    overflow-x: auto;
+    border-radius: var(--radius-card);
+    border: 1px solid var(--border-subtle);
+    background: rgba(255, 255, 255, 0.04);
+    -webkit-backdrop-filter: var(--blur-md);
+    backdrop-filter: var(--blur-md);
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+}
+
+.glass-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.glass-table th, .glass-table td {
+    padding: 1rem 1.5rem;
+    vertical-align: middle;
+}
+
+.glass-table th {
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border-strong);
+}
+
+.glass-table td {
+    color: var(--ink);
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.glass-table-row { transition: background-color 0.2s ease; }
+.glass-table-row:hover { background: var(--surface-hover); }
+.glass-table-row:last-child td { border-bottom: none; }
+.glass-table-row--active { background: rgba(255, 255, 255, 0.03); }
+
+/* List */
+.glass-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.glass-list-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: 1.25rem 1.5rem;
+    background: rgba(255, 255, 255, 0.02);
+    -webkit-backdrop-filter: var(--blur-md);
+    backdrop-filter: var(--blur-md);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.glass-list-item:hover {
+    transform: scale(1.02);
+    box-shadow: var(--shadow-sm), 0 0 12px rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.glass-list-item.active {
+    border-color: var(--terracotta);
+    background: var(--accent-soft);
+}
+
+.glass-list-item__avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    color: var(--terracotta);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.glass-list-item__info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.glass-list-item__info strong {
+    color: var(--ink);
+    font-size: 1.05rem;
+    font-weight: 600;
+}
+
+.glass-list-item__meta {
+    display: flex;
+    gap: 0.5rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+
+.glass-list-item__actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+/* Stat grid */
+.glass-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-4);
+    margin-bottom: var(--space-5);
+}
+
+.glass-stat-grid--compact { margin-bottom: 0; }
+
+.glass-stat-card {
+    padding: 1rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    background: rgba(255, 255, 255, 0.03);
+    -webkit-backdrop-filter: var(--blur-md);
+    backdrop-filter: var(--blur-md);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+}
+
+.glass-stat-value {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+}
+
+.glass-stat-value--mono {
+    font-size: 1.25rem;
+    font-family: monospace;
+}
+
+/* Status dots */
+.glass-status-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.75rem;
+    background: rgba(255, 255, 255, 0.04);
+    -webkit-backdrop-filter: var(--blur-md);
+    backdrop-filter: var(--blur-md);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-pill);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--ink);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+}
+
+.glass-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+    box-shadow: 0 0 8px var(--muted);
+}
+
+.glass-status-dot.running {
+    background: var(--success);
+    box-shadow: 0 0 10px var(--success);
+}
+
+.glass-status-dot.stopped {
+    background: var(--terracotta);
+    box-shadow: 0 0 10px var(--terracotta);
+}
+
+/* Module header */
+.glass-module-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--space-4);
+}
+
+.glass-module-header h2 {
+    font-weight: 600;
+    font-size: 1.75rem;
+    margin: 0 0 0.25rem;
+    color: var(--ink);
+}
+
+.glass-module-subtitle {
+    color: var(--muted);
+    font-size: 0.875rem;
+    margin: 0;
+}
+
+/* Metric groups */
+.glass-metric-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.glass-metric-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: var(--ink);
+    font-weight: 500;
+}
+
+.glass-metric-value {
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}
+
+/* ── Span-all modifier (full-width card in auto-fit grids) ───── */
+.vision-stat-card--span-all {
+    grid-column: 1 / -1;
+    align-items: stretch;
+}
+
+/* ── Model parameter card ─────────────────────────────────────── */
+
+.vision-param-grid {
+    display: flex;
+    flex-direction: column;
+}
+
+.vision-param-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 1.5rem;
+    align-items: center;
+    padding: 0.8rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.vision-param-row:last-child {
+    border-bottom: none;
+}
+
+.vision-param-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.vision-param-label {
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: var(--ink);
+}
+
+.vision-param-default {
+    font-size: 0.7rem;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    opacity: 0.7;
+}
+
+.vision-param-desc {
+    font-size: 0.72rem;
+    color: var(--muted);
+    line-height: 1.45;
+    margin: 0.1rem 0 0;
+    max-width: 440px;
+}
+
+.vision-param-control {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    flex-shrink: 0;
+}
+
+.vision-param-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* visionOS-style slider */
+.vision-param-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 130px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.12);
+    outline: none;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.vision-param-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+    cursor: pointer;
+    transition: box-shadow 0.15s ease;
+}
+
+.vision-param-slider::-webkit-slider-thumb:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.vision-param-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    border: none;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+    cursor: pointer;
+}
+
+/* Compact number input for slider readout */
+.vision-input--nano {
+    width: 4.5rem;
+    padding: 0.3rem 0.5rem;
+    font-size: 0.82rem;
+    text-align: right;
+}
+
+/* Error banner */
+.glass-error-banner {
+    background: var(--accent-soft);
+    -webkit-backdrop-filter: var(--blur-md);
+    backdrop-filter: var(--blur-md);
+    color: var(--terracotta);
+    padding: var(--space-4) var(--space-5);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--terracotta);
+    font-weight: 500;
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05);
+}

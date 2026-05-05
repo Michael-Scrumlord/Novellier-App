@@ -1,0 +1,51 @@
+.confirm-modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+.confirm-modal-window {
+    position: relative;
+    width: 100%;
+    max-width: 420px;
+    margin: 1rem;
+    background: var(--panel);
+    backdrop-filter: var(--blur-lg);
+    -webkit-backdrop-filter: var(--blur-lg);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-subtle);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+    overflow: hidden;
+}
+
+.confirm-modal__header {
+    padding: 1rem 1.5rem 0.5rem;
+}
+
+.confirm-modal__header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--ink);
+}
+
+.confirm-modal__body {
+    padding: 0.5rem 1.5rem 1.25rem;
+    color: var(--muted);
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.confirm-modal__body p {
+    margin: 0;
+}
+
+.confirm-modal__footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6rem;
+    padding: 0.9rem 1.5rem;
+    border-top: 1px solid var(--border-subtle);
+    background: rgba(0, 0, 0, 0.08);
+}

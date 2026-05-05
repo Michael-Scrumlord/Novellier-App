@@ -65,9 +65,9 @@ export function EmptyState({ icon, children }) {
 }
 
 const INLINE_BANNER_TONES = {
-    success: { bg: 'rgba(52, 199, 89, 0.12)', border: 'rgba(52, 199, 89, 0.3)', color: '#2fb25e' },
+    success: { bg: 'rgba(var(--success-rgb), 0.12)', border: 'rgba(var(--success-rgb), 0.3)', color: 'var(--success)' },
     warning: { bg: 'rgba(255, 149, 0, 0.12)', border: 'rgba(255, 149, 0, 0.3)', color: '#ff9500' },
-    error: { bg: 'rgba(255, 69, 58, 0.12)', border: 'rgba(255, 69, 58, 0.3)', color: '#ff6b6b' },
+    error: { bg: 'rgba(var(--danger-rgb), 0.12)', border: 'rgba(var(--danger-rgb), 0.3)', color: 'var(--danger)' },
 };
 
 export function InlineBanner({ variant = 'warning', children }) {
