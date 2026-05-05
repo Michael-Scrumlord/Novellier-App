@@ -141,6 +141,15 @@ export class LocalAIService extends IAIService {
         }
     }
 
+    setDefaultParams({ temperature, numPredict, ...hardwareOverrides }) {
+        if (temperature != null) this.defaultTemperature = temperature;
+        if (numPredict != null) this.defaultNumPredict = numPredict;
+        if (Object.keys(hardwareOverrides).length > 0) {
+            Object.assign(this.hardwareOptions, hardwareOverrides);
+            Object.assign(this.streamStrategy.hardwareOptions, hardwareOverrides);
+        }
+    }
+
     async generateStreamingCompletion(prompt, options = {}, onChunk) {
         const model = options.model || this.model;
         if (!model) throw new Error('No model configured. Assign an active model via Admin > AI Models.');

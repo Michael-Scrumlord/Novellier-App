@@ -1,12 +1,10 @@
-import { IOllamaLibraryPort } from '../../core/ports/IOllamaLibraryPort.js';
 import { normalizeModelName } from '../../core/domain/ModelNameUtils.js';
 
 const DEFAULT_LIBRARY_URL = 'https://ollama.com/library';
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
-export class OllamaLibraryAdapter extends IOllamaLibraryPort {
+export class OllamaLibraryAdapter {
     constructor({ libraryUrl } = {}) {
-        super();
         this.libraryUrl = libraryUrl || DEFAULT_LIBRARY_URL;
         this._indexCache = null;
         this._detailCache = new Map();

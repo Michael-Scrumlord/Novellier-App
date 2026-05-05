@@ -1,8 +1,9 @@
-import { TIMEOUTS, KEEP_ALIVE } from './ollama-config.js';
-
 // Handles JSONL streaming from Ollama's /api/generate and /api/chat endpoints.
 // Extracted from LocalAIService to isolate the two response shapes (plain text vs. tool-call chat)
 // and the JSONL parse loop from the main service orchestration.
+
+import { TIMEOUTS, KEEP_ALIVE } from './ollama-config.js';
+
 export class OllamaStreamStrategy {
     constructor({ transport, hardwareOptions = {} }) {
         if (!transport) throw new Error('OllamaStreamStrategy requires transport');

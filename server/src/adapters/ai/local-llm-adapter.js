@@ -1,5 +1,5 @@
 // Composition root for the Ollama adapter stack. Wires OllamaTransport, LocalAIService, and
-// LocalModelManager together and exposes .aiService and .modelManager for DI injection.
+// LocalModelManager together and exposes .aiService and .modelManager for dependency injection.
 // Transport-level methods (setBaseUrl, getBaseUrl, probeEndpoint) are forwarded for OllamaEndpointService.
 
 import { DEFAULT_BASE_URL } from './ollama/ollama-config.js';
@@ -46,4 +46,5 @@ export default class LocalLLMAdapter {
     setBaseUrl(url) { return this.transport.setBaseUrl(url); }
     getBaseUrl() { return this.transport.getBaseUrl(); }
     probeEndpoint(url, options) { return this.transport.probeEndpoint(url, options); }
+    setDefaultParams(params) { return this.aiService.setDefaultParams(params); }
 }

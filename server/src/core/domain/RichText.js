@@ -18,6 +18,7 @@ function walkLexicalNodes(nodes = [], out = []) {
 }
 
 function stripHtml(html) {
+    // Replace <br>, </p>, and </div> with newlines, then remove all other tags.
     return html
         .replace(/<\s*br\s*\/?\s*>/gi, '\n')
         .replace(/<\s*\/\s*p\s*>/gi, '\n')
@@ -26,6 +27,8 @@ function stripHtml(html) {
 }
 
 function normalizeWhitespace(text) {
+    // Replace multiple newlines with a maximum of two, 
+    // and collapse multiple spaces/tabs into a single space.
     return text
         .replace(/\r/g, '\n')
         .replace(/\n{3,}/g, '\n\n')

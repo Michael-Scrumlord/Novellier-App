@@ -1,11 +1,9 @@
 import { ObjectId } from 'mongodb';
-import { IConversationRepository } from '../../core/ports/IConversationRepository.js';
 
 // MongoDB adapter for AI conversation persistence.
 // Lazily ensures indexes on first access so startup doesn't block on index creation.
-export default class MongoConversationRepository extends IConversationRepository {
+export default class MongoConversationRepository {
     constructor(config = {}) {
-        super();
         this.db = config.db;
         this.collectionName = config.collectionName || 'ai_conversations';
         this._indexed = false;

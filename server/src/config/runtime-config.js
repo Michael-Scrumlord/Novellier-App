@@ -1,6 +1,11 @@
 // Pure configuration helpers that derive runtime tuning values from host hardware.
 // No database or HTTP calls — reads the os module and env strings only.
 import os from 'os';
+
+export const LLM_SOFT_DEFAULTS = {
+    temperature: 0.8,
+    num_predict: 150,
+};
 import { getModelSizeScore } from '../core/domain/ModelNameUtils.js';
 
 export function pickSmallestModel(models, fallbackModel) {
@@ -43,5 +48,8 @@ export function buildLlmHardwareOptions() {
         use_mlock: false,
         f16_kv: true,
         num_batch: totalMemoryGB >= 16 ? 512 : 256,
+        top_k: 40,
+        top_p: 0.9,
+        repeat_penalty: 1.1,
     };
 }

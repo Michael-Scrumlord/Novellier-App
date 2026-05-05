@@ -1,11 +1,7 @@
-import { IVectorRepository } from '../../core/ports/IVectorRepository.js';
 import { richTextToPlainText } from '../../core/domain/RichText.js';
 import { formatRetrievalContext } from '../../core/domain/RetrievalContextFormatter.js';
 
-// This adapter extends the IVectorRepository port to implement a ChromaDB-backed vector repository.
-// Supports storing and retrieving story context for RAG use cases, with Ollama for embedding generation.
-
-export default class ChromaVectorRepository extends IVectorRepository {
+export default class ChromaVectorRepository {
     constructor({
         baseUrl = 'http://chromadb:8000',
         collectionName = 'project_store',
@@ -14,7 +10,6 @@ export default class ChromaVectorRepository extends IVectorRepository {
         ragConfig,
         runtimeModels,
     } = {}) {
-        super();
         this.baseUrl = baseUrl;
         this.collectionName = collectionName;
         this.ollamaUrl = ollamaUrl;
@@ -77,11 +72,7 @@ export default class ChromaVectorRepository extends IVectorRepository {
             const collectionUrl = `${this.baseUrl}/api/v1/collections/${collectionId}`;
 
             const normalizedQuery = richTextToPlainText(text);
-            if (!normalizedQuery) {
-                return options.storyId
-                    ? 'No previous context found for this story.'
-                    : 'No historical context has been found.';
-            }
+            if (!normalizedQuery) return '';
 
             const embedding = await this.generateEmbedding(normalizedQuery);
             const nResults = options.limit || this.ragConfig.contextChunks;
@@ -113,9 +104,7 @@ export default class ChromaVectorRepository extends IVectorRepository {
                 return formatRetrievalContext(docs);
             }
 
-            return options.storyId
-                ? 'No previous context found for this story.'
-                : 'No historical context has been found.';
+            return '';
         } catch (error) {
             console.error('[RAG] ChromaDB search error:', error.message);
             return '';
