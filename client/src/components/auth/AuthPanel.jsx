@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import './Auth.css'; 
+import './Auth.css';
+import '../../styles/Forms.css';
 
 export default function AuthPanel({ onSubmit, isLoading, error }) {
     const [credentials, setCredentials] = useState({ username: '', password: '' });
@@ -19,9 +20,8 @@ export default function AuthPanel({ onSubmit, isLoading, error }) {
             <div className="auth__card ">
                 <h2>Welcome back</h2>
                 <p>Sign in to access your writing projects</p>
-                
-                <form onSubmit={handleSubmit} className="auth__form">
-                    
+
+                <form onSubmit={handleSubmit} className="auth__form stack stack--md">
                     <div className="form-group">
                         <label htmlFor="auth-username">Username</label>
                         <input
@@ -33,7 +33,7 @@ export default function AuthPanel({ onSubmit, isLoading, error }) {
                             required
                         />
                     </div>
-                    
+
                     <div className="form-group">
                         <label htmlFor="auth-password">Password</label>
                         <input
@@ -50,7 +50,7 @@ export default function AuthPanel({ onSubmit, isLoading, error }) {
                     <button className="btn btn--primary" type="submit" disabled={isLoading}>
                         {isLoading ? 'Signing in...' : 'Login'}
                     </button>
-                    
+
                     {error ? <div className="auth__error">{error}</div> : null}
                 </form>
             </div>

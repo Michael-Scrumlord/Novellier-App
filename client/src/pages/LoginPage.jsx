@@ -11,11 +11,7 @@ export function LoginPage() {
 
     return (
         <div id="login">
-        <AuthPanel
-            onSubmit={handleLogin}
-            isLoading={authLoading}
-            error={authError}
-        />
+            <AuthPanel onSubmit={handleLogin} isLoading={authLoading} error={authError} />
         </div>
     );
 }
