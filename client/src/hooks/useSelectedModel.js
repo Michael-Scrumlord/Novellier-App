@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { llmProvider } from '../services/llmProvider.js';
-import { MODEL_KEY } from '../constants/storage.js';
 import { DEFAULT_MODEL } from '../constants/ai.js';
+
+const MODEL_KEY = 'novellier_model';
 import { useAuthContext } from '../contexts/AuthContext.jsx';
 
 const EMPTY_GROUPS = [];

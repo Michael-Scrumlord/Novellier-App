@@ -1,7 +1,6 @@
 import { ISuggestionService } from '../ports/ISuggestionService.js';
 import { CONTINUITY_TOOL_SPECS } from '../domain/ContinuityToolSpecs.js';
 import { PROGRESS } from '../domain/ToolProgressEvents.js';
-import { PromptBuilder } from '../domain/PromptBuilder.js';
 import { richTextToPlainText } from '../domain/RichText.js';
 import { clipText } from '../domain/TextUtils.js';
 import {
@@ -38,14 +37,18 @@ function extractContent(result) {
 }
 
 export class AISuggestionService extends ISuggestionService {
-    constructor({ aiService, vectorRepository, storyFactsGateway, logger, config, runtimeModels, jobQueue } = {}) {
+    constructor({ aiService, vectorRepository, storyFactsGateway, strategies, logger, config, runtimeModels, jobQueue } = {}) {
         super();
         if (!aiService || !vectorRepository) {
             throw new Error('AISuggestionService requires aiService and vectorRepository');
         }
+        if (!strategies?.novel) {
+            throw new Error('AISuggestionService requires a strategies map with a "novel" default');
+        }
         this.aiService = aiService;
         this.vectorRepository = vectorRepository;
         this.storyFactsPort = storyFactsGateway || null;
+        this.strategies = strategies;
         this.logger = logger || console;
         this.config = { ...DEFAULT_CONFIG, ...(config || {}) };
         this.runtimeModels = runtimeModels || null;
@@ -61,16 +64,14 @@ export class AISuggestionService extends ISuggestionService {
             this._loadStoryFacts(options.storyId, options._meta),
         ]);
 
-        const prompt = PromptBuilder.build({
+        // YouTrack demo — domain field selects the strategy; defaults to novel.
+        const strategy = this.strategies[options.domain] ?? this.strategies.novel;
+        const prompt = strategy.buildPrompt({
             currentText: clippedStory,
             ragContext,
             feedbackFocus: options.feedbackType,
             customPrompt: options.customPrompt,
-            currentChapterSummary: options.currentChapterSummary,
-            currentBeatSummary: options.currentBeatSummary,
-            storySummary: options.storySummary,
-            storySummaryShort: options.storySummaryShort,
-            storySummaryLong: options.storySummaryLong,
+            contextSummaries: options.contextSummaries,
             storyFacts,
             mode: options.mode,
         });

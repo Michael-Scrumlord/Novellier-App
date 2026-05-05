@@ -1,8 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { THEME_KEY } from '../constants/storage.js';
-
 const ThemeContext = createContext(null);
 
+const THEME_KEY = 'novellier_theme';
 const DEFAULT_THEME = 'light';
 
 export function ThemeProvider({ children }) {

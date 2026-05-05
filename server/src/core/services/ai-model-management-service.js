@@ -13,14 +13,6 @@ import {
     buildCatalogEntries,
 } from '../domain/ModelCatalogBuilder.js';
 
-/**
- * Application service for AI model lifecycle and runtime configuration.
- *
- * Pure validation, formatting, and catalog assembly are delegated to the
- * domain modules above. This class is left with orchestration only:
- * config-port hydration, the mutable shared `runtimeModels` reference, and
- * I/O calls into the IModelManager port.
- */
 export class AIModelManagementService {
     static VALID_TARGETS = MODEL_ROLE_TARGETS;
 

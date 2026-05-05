@@ -1,15 +1,12 @@
 import crypto from 'crypto';
 import { ISuggestionService } from '../ports/ISuggestionService.js';
 
-// Wraps AISuggestionService with conversation persistence as a post-suggestion side effect.
-// Controllers depend on ISuggestionService and receive this use-case with no knowledge of storage.
-// AISuggestionService owns AI calls, RAG, tool execution, and streaming.
 export class SuggestionUseCase extends ISuggestionService {
-    constructor({ suggestionService, conversationService } = {}) {
+    constructor({ suggestionService, conversationRepository } = {}) {
         super();
         if (!suggestionService) throw new Error('SuggestionUseCase requires suggestionService');
         this.suggestionService = suggestionService;
-        this.conversationService = conversationService || null;
+        this.conversationRepository = conversationRepository || null;
     }
 
     getTelemetrySnapshot() {
@@ -33,7 +30,7 @@ export class SuggestionUseCase extends ISuggestionService {
                 fullPrompt = prompt;
             },
             logConversation: (prompt, resp) => {
-                this.conversationService?.storeConversation({ ...options._meta, role: 'system' }, prompt, resp);
+                this.#persistConversation({ ...options._meta, role: 'system' }, prompt, resp);
             },
             ...(originalOnChunk && {
                 onChunk: (chunk) => {
@@ -46,9 +43,28 @@ export class SuggestionUseCase extends ISuggestionService {
         const result = await this.suggestionService.getSuggestion(storyText, wrappedOptions);
 
         const storedResponse = resolveStoredResponse(accumulatedResponse, originalOnChunk, result, options.mode);
-        await this.conversationService?.storeConversation({ ...options._meta, role: 'user' }, fullPrompt, storedResponse);
+        await this.#persistConversation({ ...options._meta, role: 'user' }, fullPrompt, storedResponse);
 
         return typeof result === 'string' ? result : (result?.content || '');
+    }
+
+    async #persistConversation(meta, prompt, response) {
+        if (!this.conversationRepository || !meta) return;
+        if (!response || !String(response).trim()) return;
+        try {
+            await this.conversationRepository.create({
+                userId: meta.userId,
+                interactionId: meta.interactionId,
+                role: meta.role || 'user',
+                storyId: meta.storyId,
+                model: meta.model,
+                feedbackType: meta.feedbackType,
+                prompt,
+                response,
+            });
+        } catch (error) {
+            console.warn('[SuggestionUseCase] Failed to persist conversation:', error.message);
+        }
     }
 }
 

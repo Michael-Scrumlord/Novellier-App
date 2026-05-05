@@ -1,22 +1,18 @@
-import { IIndexingService } from '../ports/IIndexingService.js';
 import { richTextToPlainText } from '../domain/RichText.js';
 import { chunkText } from '../domain/TextUtils.js';
 
 // App service for story vector indexing.
 // Responsible for chunking story sections and upserting them into the vector store, re-indexing on save, and cleaning up on deletion.
-// Extracted from StoryService to satisfy the single responsibility principle. 
+// Extracted from StoryService to satisfy the single responsibility principle.
 
-export class StoryIndexingService extends IIndexingService {
+export class StoryIndexingService {
     constructor({ vectorRepository, embeddingThrottle }) {
-        super();
         this.vectorRepository = vectorRepository || null;
         this.embeddingThrottle = embeddingThrottle || null;
     }
 
-
     // Schedule async indexing of story content.
     // Safe to call without awaiting. failures are logged
-
     triggerIndexing(storyId, metadata) {
         if (!this.vectorRepository || !metadata.sections?.length) return;
 

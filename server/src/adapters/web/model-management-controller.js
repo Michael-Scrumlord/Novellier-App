@@ -1,14 +1,6 @@
 // HTTP adapter for AI model lifecycle operations.
-// Single responsibility (SRP) - translate HTTP model management requests into
-// IAIService (warmup/keepalive/ensure) and IModelManager (pull/remove/progress) calls.
-// Boundaries:
-// - Validates request payloads (model name, target role).
-// - Delegates warmup, keep-alive to aiService (IAIService port).
-// - Delegates pull, remove, progress to modelManager (IModelManager port).
-// - Delegates role switching to modelManagementService.
-// - Translates service errors into appropriate HTTP responses.
 export default class ModelManagementController {
-    constructor({ aiService, modelManager, modelManagementService, ollamaEndpointService }) {
+    constructor({ aiService, modelManager, modelManagementService, ollamaEndpointService, llmParamsService }) {
         if (!aiService) throw new Error('ModelManagementController requires aiService');
         if (!modelManager) throw new Error('ModelManagementController requires modelManager');
         if (!modelManagementService) throw new Error('ModelManagementController requires modelManagementService');
@@ -16,6 +8,7 @@ export default class ModelManagementController {
         this.modelManager = modelManager;
         this.modelManagementService = modelManagementService;
         this.ollamaEndpointService = ollamaEndpointService || null;
+        this.llmParamsService = llmParamsService || null;
     }
 
     async warmup(req, res) {
@@ -133,6 +126,31 @@ export default class ModelManagementController {
         const { url } = req.body || {};
         const result = await this.ollamaEndpointService.testConnection(url);
         return res.json(result);
+    }
+
+    async getLlmParams(_req, res) {
+        if (!this.llmParamsService) return res.status(501).json({ error: 'LLM params service not configured' });
+        return res.json(this.llmParamsService.getParams());
+    }
+
+    async setLlmParams(req, res) {
+        if (!this.llmParamsService) return res.status(501).json({ error: 'LLM params service not configured' });
+        try {
+            const result = await this.llmParamsService.setParams(req.body || {});
+            return res.json({ status: 'ok', ...result });
+        } catch (error) {
+            return res.status(400).json({ error: error.message });
+        }
+    }
+
+    async resetLlmParams(_req, res) {
+        if (!this.llmParamsService) return res.status(501).json({ error: 'LLM params service not configured' });
+        try {
+            const result = await this.llmParamsService.resetParams();
+            return res.json({ status: 'ok', ...result });
+        } catch (error) {
+            return res.status(500).json({ error: error.message });
+        }
     }
 
     async setActiveModel(req, res) {

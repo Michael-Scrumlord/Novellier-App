@@ -5,8 +5,6 @@ const TOOL_EVENT_ORDER = {
     tool_failed: 2,
 };
 
-// This function merges incoming tool events into the existing list.
-
 export function upsertToolEvent(events, incoming) {
     const key = `${incoming.index ?? 'na'}::${incoming.toolName || 'unknown_tool'}`;
     const incomingRank = TOOL_EVENT_ORDER[incoming.type] ?? 0;

@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useState } from 'react';
-import { FEEDBACK_KEY } from '../constants/storage.js';
 import { FEEDBACK_OPTIONS } from '../constants/ai.js';
+
+const FEEDBACK_KEY = 'novellier_feedback_type';
 import { useLocalStorage } from '../hooks/useLocalStorage.js';
 import { useSuggestionStream } from '../hooks/useSuggestionStream.js';
 import { useAuthContext } from './AuthContext.jsx';
