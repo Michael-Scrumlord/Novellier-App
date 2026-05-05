@@ -7,8 +7,10 @@ COPY package*.json ./
 
 # Development stage with hot reloading
 FROM base-stage AS development
-RUN npm install
+RUN npm install \
+    && chown -R node:node /app
 EXPOSE 80
+USER node
 CMD ["npm", "run", "dev"]
 
 # Build stage to compile the app for production.

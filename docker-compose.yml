@@ -2,7 +2,6 @@ networks:
     novellier-network:
         driver: bridge
     # Isolated network for socket proxy — only the server can reach it.
-    # No other compose service is attached to this network.
     docker-proxy-network:
         driver: bridge
         internal: true
@@ -33,7 +32,6 @@ services:
             - JWT_SECRET=${JWT_SECRET}
             - COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME}
             - COMPOSE_NETWORK=${COMPOSE_NETWORK}
-            # Proxy endpoint — adapter reads this instead of the raw socket path.
             - DOCKER_HOST=tcp://docker-socket-proxy:2375
         depends_on:
             docker-socket-proxy:
@@ -212,7 +210,7 @@ services:
                     memory: 8g
         restart: unless-stopped
 
-    # Mongo DB for storing user data, tokens, and stories
+    # Mongo DB for storing user data, tokens, and stories/story summaries
     mongodb:
         image: mongo:7
         ports:
@@ -241,6 +239,72 @@ services:
                     memory: 1g
         restart: unless-stopped
 
+    # YouTrack Demo Integration
+    # Start with:  docker compose --profile youtrack up
+    # Tear down:   docker compose --profile youtrack down -v
+    # Remove completely: delete this block and the youtrack-advisor/ directory.
+    youtrack:
+        image: jetbrains/youtrack:2026.1.13162
+        ports:
+            - '5174:8080'
+        networks:
+            - novellier-network
+        volumes:
+            - youtrack-data:/opt/youtrack/data
+            - youtrack-logs:/opt/youtrack/logs
+            - youtrack-conf:/opt/youtrack/conf
+            - youtrack-backups:/opt/youtrack/backups
+        profiles: [youtrack]
+        healthcheck:
+            test: ['CMD-SHELL', 'wget -qO- http://localhost:8080/api/productUrlMapping || exit 1']
+            interval: 30s
+            timeout: 10s
+            retries: 10
+            start_period: 120s
+        deploy:
+            resources:
+                limits:
+                    cpus: '2.0'
+                    memory: 2g
+        restart: unless-stopped
+
+    # YouTrack Advisor — React UI + Express proxy that bridges YouTrack and Novellier.
+    # Accessible at http://localhost:8090 (or http://<host-ip>:8090 on your local network).
+    # This needs to be removed before deploying to Docker Hub!!! It's just for the demo
+    youtrack-advisor:
+        build: ./youtrack-advisor
+        ports:
+            - '8090:3000'
+        networks:
+            - novellier-network
+        profiles: [youtrack]
+        environment:
+            - NOVELLIER_URL=http://server:5000
+            - NOVELLIER_ADMIN_USER=${NOVELLIER_ADMIN_USER:-app_youtrack_admin}
+            - NOVELLIER_ADMIN_PASS=${NOVELLIER_ADMIN_PASS}
+            - YOUTRACK_URL=http://youtrack:8080
+            - YOUTRACK_TOKEN=${YOUTRACK_TOKEN}
+        depends_on:
+            server:
+                condition: service_healthy
+        healthcheck:
+            test: ['CMD-SHELL', 'wget -qO- http://localhost:3000/health || exit 1']
+            interval: 15s
+            timeout: 5s
+            retries: 3
+            start_period: 20s
+        deploy:
+            resources:
+                limits:
+                    cpus: '0.5'
+                    memory: 256m
+        restart: unless-stopped
+
 volumes:
     novellier-mongo-data:
     novellier-ollama-data:
+    # YouTrack Demo volumes — removed with: docker compose --profile youtrack down -v
+    youtrack-data:
+    youtrack-logs:
+    youtrack-conf:
+    youtrack-backups:
