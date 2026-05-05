@@ -5,7 +5,6 @@ import { AdminPageHead, LoadingState, ErrorBanner, EmptyState, AdminTable } from
 import './AdminModules.css';
 
 // This component provides a dashboard for monitoring the status of the MongoDB instance used by the application.
-
 const COLLECTION_COLUMNS = [
     { key: 'name', label: 'Collection Name' },
     { key: 'count', label: 'Document Count', align: 'right' },
@@ -83,19 +82,19 @@ export default function MongoMonitor({ token }) {
 
             <div className="glass-stat-grid">
                 <div className="glass-stat-card surface-card--hoverable">
-                    <span className="eyebrow glass-stat-label">Active Database</span>
+                    <span className="eyebrow">Active Database</span>
                     <span className="glass-stat-value">{status.db}</span>
                 </div>
                 <div className="glass-stat-card surface-card--hoverable">
-                    <span className="eyebrow glass-stat-label">Total Collections</span>
+                    <span className="eyebrow">Total Collections</span>
                     <span className="glass-stat-value">{collections.length}</span>
                 </div>
                 <div className="glass-stat-card surface-card--hoverable">
-                    <span className="eyebrow glass-stat-label">Total Documents</span>
+                    <span className="eyebrow">Total Documents</span>
                     <span className="glass-stat-value">{totalDocumentCount(status).toLocaleString()}</span>
                 </div>
                 <div className="glass-stat-card surface-card--hoverable">
-                    <span className="eyebrow glass-stat-label">Storage Footprint</span>
+                    <span className="eyebrow">Storage Footprint</span>
                     <span className="glass-stat-value">{formatBytes(totalCollectionSize(status))}</span>
                 </div>
             </div>
