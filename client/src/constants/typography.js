@@ -1,9 +1,8 @@
 export const EDITOR_FONTS = [
-    { label: 'Default Font', value: 'Georgia, serif' }, // I really just prefer Georgia. Change back to 'default' for the OG experience.
+    { label: 'Default Font', value: 'Georgia, serif' },
     { label: 'Arial', value: 'Arial, Helvetica, sans-serif' },
     { label: 'Times New Roman', value: "'Times New Roman', Times, serif" },
     { label: 'Courier New', value: "'Courier New', Courier, monospace" },
-    //{ label: 'Georgia', value: 'Georgia, serif' },
     {
         label: 'Trebuchet MS',
         value: "'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif",

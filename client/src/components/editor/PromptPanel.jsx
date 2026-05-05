@@ -1,136 +1,64 @@
-import { useEffect, useRef } from 'react';
+import { useAutoScroll } from '../../hooks/useAutoScroll.js';
+import { FEEDBACK_OPTIONS } from '../../constants/ai.js';
+import PromptPanelHeader from './PromptPanelHeader.jsx';
+import PromptPanelOutput from './PromptPanelOutput.jsx';
+import { PromptPanelControls, PromptPanelAnchor } from './PromptPanelInput.jsx';
+import './PromptPanel.css';
 
-const BOTTOM_SCROLL_THRESHOLD = 24;
-
-export default function PromptPanel({
-    aiCtx,
-    modelCtx,
-    models,
-    isCollapsed,
-    onToggle,
-    onSuggest
-}) {
-    const responseRef = useRef(null);
-  const shouldAutoScrollRef = useRef(true);
-
-    const { 
-      aiPrompt, setAiPrompt, 
-      aiResponse, isSuggesting, 
-      feedbackType, feedbackOptions, setFeedbackType 
+export default function PromptPanel({ aiCtx, selectedModel, isCollapsed, onToggle, onSuggest }) {
+    const {
+        aiPrompt, setAiPrompt,
+        aiResponse, toolEvents = [], isSuggesting,
+        feedbackType, setFeedbackType,
+        aiMode, setAiMode,
+        progress,
     } = aiCtx;
-    
-    const { selectedModel, setModel, isModelPulling, modelPulling, modelPullStatus } = modelCtx;
-    const pulling = isModelPulling ?? modelPulling;
-    const modelOptions = (models || []).flatMap((group) => group.options || []);
 
-    useEffect(() => {
-      if (!responseRef.current || isCollapsed || !shouldAutoScrollRef.current) return;
-      const node = responseRef.current;
-      requestAnimationFrame(() => {
-        node.scrollTop = node.scrollHeight;
-      });
-    }, [aiResponse, isCollapsed]);
+    const modelLabel = (selectedModel || '').split(':')[0];
 
-    useEffect(() => {
-      if (!isSuggesting) return;
-      shouldAutoScrollRef.current = true;
-    }, [isSuggesting]);
-
-    const handleResponseScroll = () => {
-      const node = responseRef.current;
-      if (!node) return;
-
-      const distanceFromBottom = node.scrollHeight - node.scrollTop - node.clientHeight;
-      shouldAutoScrollRef.current = distanceFromBottom <= BOTTOM_SCROLL_THRESHOLD;
-    };
+    const { ref: scrollRef, onScroll } = useAutoScroll({
+        triggers: [aiResponse, toolEvents],
+        active: isSuggesting,
+        paused: isCollapsed,
+    });
 
     return (
-        <aside className={`spatial-sidebar ${isCollapsed ? 'spatial-sidebar--collapsed' : ''}`}>
-          
-            {/* Header */}
-            <div className="spatial-sidebar__header">
-                <button 
-                    className="btn btn--glass btn--icon sidebar-toggle" 
-                    onClick={onToggle}
-                    title={isCollapsed ? 'Expand AI Panel' : 'Collapse AI Panel'}
-                >
-                  {isCollapsed ? (
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="15" y1="3" x2="15" y2="21"></line></svg>
-                  ) : (
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
-                  )}
-                </button>
-                {!isCollapsed && (
-                  <div className="spatial-sidebar__title-group" style={{ textAlign: 'right' }}>
-                      <h3 className="text-heading" style={{fontSize: '1rem'}}>AI Copilot</h3>
-                      <span className="text-muted" style={{fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.3rem', justifyContent: 'flex-end'}}>
-                          {pulling ? modelPullStatus : (selectedModel || '').split(':')[0]}
-                          <div style={{width: '6px', height: '6px', borderRadius: '50%', background: pulling ? 'var(--muted)' : 'var(--terracotta)'}} />
-                      </span>
-                  </div>
-                )}
-            </div>
+        <aside className={`spatial-sidebar col-fill-w ${isCollapsed ? 'spatial-sidebar--collapsed' : ''}`}>
+            <PromptPanelHeader
+                isCollapsed={isCollapsed}
+                onToggle={onToggle}
+                modelLabel={modelLabel}
+            />
 
             {!isCollapsed && (
-            <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
-              
-              {/* Top Settings (Compact) */}
-              <div style={{ padding: '0.75rem 1rem', display: 'flex', gap: '0.5rem', borderBottom: '1px solid var(--border-subtle)' }}>
-                <select className="spatial-select spatial-select--small" style={{flex: 1}} value={feedbackType} onChange={(e) => setFeedbackType(e.target.value)}>
-                  {feedbackOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                </select>
-                <select className="spatial-select spatial-select--small" style={{flex: 1}} value={selectedModel} onChange={(e) => setModel(e.target.value)}>
-                  {modelOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                </select>
-              </div>
+                <div className="prompt-panel__body">
+                    <PromptPanelControls
+                        aiMode={aiMode}
+                        setAiMode={setAiMode}
+                        feedbackType={feedbackType}
+                        setFeedbackType={setFeedbackType}
+                        feedbackOptions={FEEDBACK_OPTIONS}
+                    />
 
-              {/* Center Output */}
-              <div
-                className={`ai-message-well ${isSuggesting ? 'ai-card--thinking' : ''}`}
-                ref={responseRef}
-                onScroll={handleResponseScroll}
-              >
-                {/* Empty State */}
-                {!aiResponse && !isSuggesting && (
-                    <div style={{textAlign: 'center', margin: 'auto', color: 'var(--muted)', fontSize: '0.9rem'}}>
-                      <p>What should we focus on?</p>
-                    </div>
-                )}
-                
-                {/* AI Response Bubble */}
-                {(aiResponse || isSuggesting) && (
-                    <div className="glass-card" style={{ padding: '1.2rem', borderRadius: '16px', background: 'var(--panel)', border: isSuggesting ? '1px solid var(--terracotta)' : '1px solid var(--border-subtle)' }}>
-                      <div style={{ fontSize: '0.95rem', lineHeight: 1.6, color: aiResponse ? 'var(--ink)' : 'var(--muted)', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
-                          {isSuggesting && !aiResponse ? 'Analyzing structure...' : aiResponse}
-                      </div>
-                    </div>
-                )}
-              </div>
+                    <PromptPanelOutput
+                        scrollRef={scrollRef}
+                        onScroll={onScroll}
+                        aiResponse={aiResponse}
+                        toolEvents={toolEvents}
+                        isSuggesting={isSuggesting}
+                        aiMode={aiMode}
+                        progress={progress}
+                    />
 
-              {/* Bottom Input: Anchored to the user */}
-              <div className="ai-input-anchor">
-                <textarea
-                  value={aiPrompt}
-                  onChange={(e) => setAiPrompt(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); onSuggest(); } }}
-                  placeholder="Ask for feedback (⌘+Enter)"
-                  rows={2}
-                  style={{
-                    width: '100%', padding: '0.8rem', borderRadius: '12px', background: 'rgba(0,0,0,0.2)',
-                    border: '1px solid var(--border-subtle)', color: 'var(--ink)', resize: 'none', marginBottom: '0.5rem'
-                  }}
-                />
-                <button
-                  className={`btn ${isSuggesting ? 'btn--danger' : 'btn--primary'}`}
-                  onClick={onSuggest}
-                  style={{ width: '100%', justifyContent: 'center' }}
-                >
-                  {isSuggesting ? '⏹ Stop Generation' : 'Analyze Current Chapter'}
-                </button>
-              </div>
-
-            </div>
-          )}
+                    <PromptPanelAnchor
+                        aiPrompt={aiPrompt}
+                        setAiPrompt={setAiPrompt}
+                        aiMode={aiMode}
+                        isSuggesting={isSuggesting}
+                        onSuggest={onSuggest}
+                    />
+                </div>
+            )}
         </aside>
     );
 }

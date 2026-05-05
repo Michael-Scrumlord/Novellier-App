@@ -1,132 +1,82 @@
-import React, { useMemo } from 'react';
-import './Home.css';
+import { useMemo } from 'react';
+import StoryCard from './StoryCard.jsx';
+import './HomePage.css';
 import '../../App.css';
-import { GENRE_MOTIFS } from '../../constants/genres.js';
 
-const getGenreMotif = (genre) => {
-    return GENRE_MOTIFS[genre] || '--'; 
-};
+function EmptyLibrary({ onCreate }) {
+    return (
+        <div className="home-page__empty flex-center" style={{ animationDelay: '0.1s' }}>
+            <div className="empty-state__glass glass-card stack">
+                <svg
+                    className="empty-state__icon"
+                    width="64"
+                    height="64"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                >
+                    <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
+                </svg>
+                <h3>No stories yet</h3>
+                <p>Start your first story to begin your writing journey</p>
+                <div className="empty-state__actions flex-center">
+                    <button className="btn btn--primary" onClick={onCreate} type="button">
+                        Create First Story
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
 
-const getStoryProgress = (story) => {
-    if (!story.sections || story.sections.length === 0) return 0;
-    const completed = story.sections.filter(sec => sec.content && sec.content.trim().length > 0).length;
-    return Math.round((completed / story.sections.length) * 100);
-};
-
-const getStatusText = (progress) => {
-    if (progress === 0) return 'Not started';
-    if (progress < 50) return 'In progress';
-    if (progress < 100) return 'Nearly complete';
-    return 'Complete';
-};
+function LibraryHeader({ onCreate }) {
+    return (
+        <header className="home-page__header row-between glass-card animate-fade-in-up">
+            <div className="home-page__title-group">
+                <h2 className="text-heading">Your Library</h2>
+                <p className="text-muted">Manage your writing projects and track your progress</p>
+            </div>
+            <div className="home-page__actions row">
+                <button className="btn btn--primary" onClick={onCreate} type="button">
+                    + New Story
+                </button>
+            </div>
+        </header>
+    );
+}
 
 export default function HomePageView({
     stories,
     onStorySelect,
     onCreate,
-    onCreateExample,
-    onOpenStorySettings
+    onOpenStorySettings,
 }) {
-  
-    const sortedStories = useMemo(() => {
-        return [...stories].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
-    }, [stories]);
+    const sortedStories = useMemo(
+        () => [...stories].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)),
+        [stories]
+    );
 
     return (
         <div className="home-page">
-        <header className="home-page__header glass-card animate-fade-in-up">
-            <div className="home-page__title-group">
-            <h2 className="text-heading">Your Library</h2>
-            <p className="text-muted">Manage your writing projects and track your progress</p>
-            </div>
-            <div className="home-page__actions">
-            <button className="btn btn--glass" onClick={onCreateExample} type="button">
-                Create Example
-            </button>
-            <button className="btn btn--primary" onClick={onCreate} type="button">
-                + New Story
-            </button>
-            </div>
-        </header>
+            <LibraryHeader onCreate={onCreate} />
 
-        {stories.length === 0 ? (
-            <div className="home-page__empty" style={{ animationDelay: '0.1s' }}>
-            <div className="empty-state__glass ">
-                <div className="empty-state__icon">TODO: Book Icon</div>
-                <h3>No stories yet</h3>
-                <p>Start your first story to begin your writing journey</p>
-                <div className="empty-state__actions">
-                <button className="btn btn--primary" onClick={onCreate} type="button">
-                    Create First Story
-                </button>
+            {stories.length === 0 ? (
+                <EmptyLibrary onCreate={onCreate} />
+            ) : (
+                <div className="home-page__grid" style={{ animationDelay: '0.1s' }}>
+                    {sortedStories.map((story) => (
+                        <StoryCard
+                            key={story.id}
+                            story={story}
+                            onSelect={onStorySelect}
+                            onOpenSettings={onOpenStorySettings}
+                        />
+                    ))}
                 </div>
-            </div>
-            </div>
-        ) : (
-            <div className="home-page__grid" style={{ animationDelay: '0.1s' }}>
-            {sortedStories.map((story) => {
-                const progress = getStoryProgress(story);
-                const status = getStatusText(progress);
-
-                return (
-                <article
-                    key={story.id}
-                    className="story-card"
-                    onClick={() => onStorySelect(story)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') onStorySelect(story);
-                    }}
-                >
-                    <div className="story-card__header">
-                    <div className="story-card__badge">
-                        <span className="badge-icon">{getGenreMotif(story.genre)}</span>
-                        <span className="badge-text">{story.genre || 'Draft'}</span>
-                    </div>
-                    <button
-                        className="btn btn--glass btn--small"
-                        onClick={(e) => {
-                        e.stopPropagation();
-                        onOpenStorySettings?.(story);
-                        }}
-                        title="Story settings"
-                    >
-                        Options
-                    </button>
-                    </div>
-
-                    <div className="story-card__body">
-                    <h3 className="story-card__title">{story.title}</h3>
-                    <p className="story-card__status">{status}</p>
-                    </div>
-
-                    <div className="story-card__progress-section">
-                    <div className="progress-bar">
-                        <div className="progress-bar__fill" style={{ width: `${progress}%` }} />
-                    </div>
-                    <div className="progress-stats">
-                        <span>{progress}% complete</span>
-                        <span>{story.sections?.length || 0} sections</span>
-                    </div>
-                    </div>
-
-                    <div className="story-card__footer">
-                    <div className="story-card__date">
-                        <span className="meta-label">Edited</span>
-                        <span className="meta-value">
-                        {new Date(story.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                        </span>
-                    </div>
-                    <div className="story-card__cta">
-                        Continue →
-                    </div>
-                    </div>
-                </article>
-                );
-            })}
-            </div>
-        )}
+            )}
         </div>
     );
 }

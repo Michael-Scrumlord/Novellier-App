@@ -26,7 +26,6 @@ export async function parseSSEStream(reader, { onChunk, onEvent, onProgress } = 
                     if (parsed.error) throw new Error(parsed.error);
 
                     if (parsed.event === 'tool' && parsed.toolEvent) {
-                        console.debug('[ToolDebug][client] toolEvent', parsed.toolEvent);
                         onEvent?.(parsed.toolEvent);
                     }
 
@@ -41,7 +40,9 @@ export async function parseSSEStream(reader, { onChunk, onEvent, onProgress } = 
 
                     if (parsed.done) return fullResponse;
                 } catch (e) {
-                    console.error('Failed to parse SSE frame:', e, 'Data:', data);
+                    if (import.meta.env.DEV) {
+                        console.error('Failed to parse SSE frame:', e, 'Data:', data);
+                    }
                     throw e;
                 }
             }
