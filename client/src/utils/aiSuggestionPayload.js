@@ -79,9 +79,11 @@ export function buildSuggestionPayload({
     const chapterSummaries = currentStory?.chapterSummaries || [];
     const beatSummaries = currentStory?.beatSummaries || [];
 
-    const currentChapterSummary = findChapterSummary(chapterSummaries, activeSection);
-    const currentBeatSummary = findBeatSummary(beatSummaries, activeSection);
-    const storySummary = currentStory?.storySummary || currentStory?.storySummaryShort || '';
+    const contextSummaries = {
+        local: findChapterSummary(chapterSummaries, activeSection),
+        mid: findBeatSummary(beatSummaries, activeSection),
+        global: currentStory?.storySummary || currentStory?.storySummaryShort || '',
+    };
     const customPrompt = promptOverride || (aiMode === 'tools' && !aiPrompt.trim() ? 'populate_facts' : aiPrompt);
 
     const basePayload = {
@@ -89,11 +91,7 @@ export function buildSuggestionPayload({
         feedbackType,
         customPrompt,
         mode: aiMode,
-        currentChapterSummary,
-        currentBeatSummary,
-        storySummary,
-        storySummaryShort: currentStory?.storySummaryShort || '',
-        storySummaryLong: currentStory?.storySummaryLong || '',
+        contextSummaries,
         storyText: plainSections[activeSectionIndex]?.content || '',
     };
 
