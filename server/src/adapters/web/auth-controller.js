@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 export default class AuthController {
     constructor({ userService, jwtSecret }) {
         if (!userService) {
-        throw new Error('AuthController requires userService');
+            throw new Error('AuthController requires userService');
         }
 
         this.userService = userService;
@@ -23,30 +23,27 @@ export default class AuthController {
         }
 
         const token = jwt.sign(
-        { sub: user.id, username: user.username, role: user.role },
-        this.jwtSecret,
-        { expiresIn: '2h' }
+            { sub: user.id, username: user.username, role: user.role },
+            this.jwtSecret,
+            { expiresIn: '2h' }
         );
 
-        console.log(`User ${user.username} logged in, token issued.
-            User ID: ${user.id}, Role: ${user.role}
-            Token: ${token}
-            `);
+        console.log(`User ${user.username} logged in, token issued. User ID: ${user.id}, Role: ${user.role}`);
 
         return res.json({
-        token,
-        user: {
-            id: user.id,
-            username: user.username,
-            firstName: user.firstName || '',
-            lastName: user.lastName || '',
-            email: user.email || '',
-            profilePicture: user.profilePicture || null,
-            uuid: user.uuid,
-            role: user.role,
-            createdAt: user.createdAt,
-            updatedAt: user.updatedAt
-        }
+            token,
+            user: {
+                id: user.id,
+                username: user.username,
+                firstName: user.firstName || '',
+                lastName: user.lastName || '',
+                email: user.email || '',
+                profilePicture: user.profilePicture || null,
+                uuid: user.uuid,
+                role: user.role,
+                createdAt: user.createdAt,
+                updatedAt: user.updatedAt,
+            },
         });
     }
 

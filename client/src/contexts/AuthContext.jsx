@@ -4,9 +4,7 @@ import { TOKEN_KEY, USER_KEY } from '../constants/storage.js';
 
 const AuthContext = createContext(null);
 
-// This AuthProvider component manages authentication state and provides login/logout functions. 
-// It also handles the token storage and removal. 
-
+// This AuthProvider component manages authentication state and provides login/logout functions. It also handles the token storage and removal. 
 export function AuthProvider({ children }) {
     const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY));
     const [user, setUser] = useState(() => {

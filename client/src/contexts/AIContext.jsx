@@ -1,138 +1,44 @@
-import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
-import { api } from '../lib/api.js';
+import { createContext, useCallback, useContext, useState } from 'react';
 import { FEEDBACK_KEY } from '../constants/storage.js';
-import { FEEDBACK_OPTIONS } from '../constants/models.js';
-import { htmlToPlainText } from '../utils/textUtils.js';
+import { FEEDBACK_OPTIONS } from '../constants/ai.js';
+import { useLocalStorage } from '../hooks/useLocalStorage.js';
+import { useSuggestionStream } from '../hooks/useSuggestionStream.js';
 import { useAuthContext } from './AuthContext.jsx';
-import { useModelContext } from './ModelContext.jsx';
 import { useStoryContext } from './StoryContext.jsx';
-import { getActiveSectionIndex } from '../utils/storyContentUtils.js';
+import { useEditorUIContext } from './EditorUIContext.jsx';
 
 const AIContext = createContext(null);
 
 export function AIProvider({ children }) {
     const { token } = useAuthContext();
-    const { selectedModel } = useModelContext();
-    const { sections, selectedBeatIndex, selectedChapterIndex, activeStoryId, currentStory } = useStoryContext();
+    const { sections, activeStoryId, currentStory, syncStoryFromServer } = useStoryContext();
+    const { activeSectionIndex } = useEditorUIContext();
 
-    const [aiResponse, setAiResponse] = useState('');
-    const [isSuggesting, setIsSuggesting] = useState(false);
     const [aiPrompt, setAiPrompt] = useState('');
-    
-    // FYI: Lazy Initialization - this only reads localStorage on the first render
-    const [feedbackType, setFeedbackType] = useState(() => 
-        localStorage.getItem(FEEDBACK_KEY) || FEEDBACK_OPTIONS[0].value
-    );
+    const [aiMode, setAiMode] = useState('copilot');
+    const [feedbackType, setFeedbackType] = useLocalStorage(FEEDBACK_KEY, FEEDBACK_OPTIONS[0].value);
 
-    const abortControllerRef = useRef(null);
+    const stream = useSuggestionStream({
+        token, sections, activeStoryId, currentStory, activeSectionIndex, syncStoryFromServer,
+    });
 
-    // Handlers
-    const setFeedbackTypeAndPersist = useCallback((value) => {
-        setFeedbackType(value);
-        localStorage.setItem(FEEDBACK_KEY, value);
-    }, []);
+    const requestSuggestion = useCallback((onStatusMessage, promptOverride) =>
+        stream.request({ feedbackType, aiMode, aiPrompt, promptOverride, onStatusMessage }),
+        [stream, feedbackType, aiMode, aiPrompt]);
 
-    const stopSuggestion = useCallback(() => {
-        if (abortControllerRef.current) {
-            abortControllerRef.current.abort();
-            abortControllerRef.current = null;
-        }
-        setIsSuggesting(false);
-    }, []);
+    const value = {
+        aiResponse: stream.aiResponse,
+        toolEvents: stream.toolEvents,
+        isSuggesting: stream.isSuggesting,
+        progress: stream.progress,
+        aiPrompt, setAiPrompt,
+        aiMode, setAiMode,
+        feedbackType, setFeedbackType,
+        requestSuggestion,
+        stopSuggestion: stream.stop,
+    };
 
-    const requestSuggestion = useCallback(async (onStatusMessage) => {
-        if (!token) return;
-        // Toggle off
-        if (isSuggesting) {
-            stopSuggestion();
-            onStatusMessage?.('Analysis stopped.');
-            return;
-        }
-
-        setIsSuggesting(true);
-        setAiResponse('');
-        abortControllerRef.current = new AbortController();
-
-        const plainSections = sections.map((s) => ({
-            beatKey: s.beatKey,
-            title: s.title,
-            content: htmlToPlainText(s.content || '')
-        }));
-        
-        const activeSectionIdx = getActiveSectionIndex(sections, selectedBeatIndex, selectedChapterIndex);
-        const activeSection = sections[activeSectionIdx];
-        const chapterSummaries = currentStory?.chapterSummaries || [];
-        const beatSummaries = currentStory?.beatSummaries || [];
-
-        const currentChapterSummary = activeSection
-            ? (
-                chapterSummaries.find((chapter) => chapter.sectionId && chapter.sectionId === activeSection.id)
-                || chapterSummaries.find((chapter) => chapter.beatKey === activeSection.beatKey && chapter.chapterTitle === activeSection.title)
-            )?.summary || ''
-            : '';
-
-        const currentBeatSummary = activeSection
-            ? (beatSummaries.find((beat) => beat.beatKey === activeSection.beatKey)?.summary || '')
-            : '';
-
-        const storySummary = currentStory?.storySummary || currentStory?.storySummaryShort || '';
-
-        try {
-            await api.getSuggestionStream(
-                token,
-                {
-                    storyId: activeStoryId,
-                    model: selectedModel,
-                    feedbackType,
-                    customPrompt: aiPrompt,
-                    currentChapterSummary,
-                    currentBeatSummary,
-                    storySummary,
-                    storySummaryShort: currentStory?.storySummaryShort || '',
-                    storySummaryLong: currentStory?.storySummaryLong || '',
-                    activeSectionIndex: activeSectionIdx,
-                    storyText: plainSections[activeSectionIdx]?.content || '',
-                    sections: plainSections,
-                },
-                (chunk) => setAiResponse((prev) => prev + chunk),
-                abortControllerRef.current.signal
-            );
-            onStatusMessage?.('Insight delivered.');
-        } catch (error) {
-          if (error.name === 'AbortError') {
-              setAiResponse((prev) => prev + '\n\n[Analysis stopped]');
-              onStatusMessage?.('Analysis stopped.');
-          } else {
-              console.error('AI Stream Error:', error);
-              setAiResponse('Unable to reach AI right now.');
-          }
-        } finally {
-            abortControllerRef.current = null;
-            setIsSuggesting(false);
-        }
-    }, [
-        token, sections, selectedBeatIndex, selectedChapterIndex, activeStoryId, currentStory,
-        selectedModel, feedbackType, aiPrompt, isSuggesting, stopSuggestion
-    ]);
-
-    return (
-        <AIContext.Provider value={{
-            // State
-            aiResponse,
-            isSuggesting,
-            aiPrompt,
-            feedbackType,
-            feedbackOptions: FEEDBACK_OPTIONS,
-            
-            // Actions
-            setAiPrompt,
-            setFeedbackType: setFeedbackTypeAndPersist,
-            requestSuggestion,
-            stopSuggestion
-        }}>
-            {children}
-        </AIContext.Provider>
-    );
+    return <AIContext.Provider value={value}>{children}</AIContext.Provider>;
 }
 
 export function useAIContext() {
