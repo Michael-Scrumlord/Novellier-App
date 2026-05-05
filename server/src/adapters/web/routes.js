@@ -3,12 +3,8 @@ import { asyncHandler } from './error-handling.js';
 import { requireRole } from './auth-middleware.js';
 
 // This provides the route definitions for the web adapter. 
-
-/*
-    - All protected routes pass through `authMiddleware`.
-    - Admin endpoints enforce the requireRole middleware.
-    - Controller metthods are wrapped in an asynchandler which helps to normalize async error propogation. 
-*/
+// All protected routes pass through authMiddleware, which enforces admin endpoints with requireRole. 
+// Controller methods are wrapped in asyncHandler to normalize async error propagation.
 export const createRoutes = ({
     authController,
     userController,
@@ -38,7 +34,7 @@ export const createRoutes = ({
     router.delete('/api/users/:id', authMiddleware, requireRole('admin'), bind(userController, 'deleteUser'));
 
     // Store management endpoints. 
-    // Consider changing the story naming convention for better generality. What if I do screenplay support too..? 
+    // Consider changing the story naming convention for better generality! What if I do screenplay support too..? 
     router.get('/api/stories', authMiddleware, bind(storyController, 'listStories'));
     router.get('/api/stories/:id', authMiddleware, bind(storyController, 'getStory'));
     router.post('/api/stories', authMiddleware, bind(storyController, 'createStory'));
@@ -69,6 +65,10 @@ export const createRoutes = ({
     router.get('/api/admin/ollama/endpoint', authMiddleware, requireRole('admin'), bind(modelManagementController, 'getOllamaEndpoint'));
     router.put('/api/admin/ollama/endpoint', authMiddleware, requireRole('admin'), bind(modelManagementController, 'setOllamaEndpoint'));
     router.post('/api/admin/ollama/endpoint/test', authMiddleware, requireRole('admin'), bind(modelManagementController, 'testOllamaEndpoint'));
+    // Ollama model parameters
+    router.get('/api/admin/ollama/params', authMiddleware, requireRole('admin'), bind(modelManagementController, 'getLlmParams'));
+    router.put('/api/admin/ollama/params', authMiddleware, requireRole('admin'), bind(modelManagementController, 'setLlmParams'));
+    router.post('/api/admin/ollama/params/reset', authMiddleware, requireRole('admin'), bind(modelManagementController, 'resetLlmParams'));
 
     // Conversations endpoints (Admin Panel)
     router.get('/api/admin/conversations', authMiddleware, requireRole('admin'), bind(conversationController, 'listConversations'));

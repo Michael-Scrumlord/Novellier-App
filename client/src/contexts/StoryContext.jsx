@@ -1,65 +1,55 @@
-// src/contexts/StoryContext.jsx
-import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { createContext, useCallback, useContext } from 'react';
+import { buildTitleHtml, buildChapterHeadingHtml } from '../utils/storyContentUtils.js';
+import { useStoryReducer } from '../hooks/useStoryReducer.js';
+import { useStoryCrud } from '../hooks/useStoryCrud.js';
 import { useAuthContext } from './AuthContext.jsx';
-import { useStoryManager } from '../hooks/useStoryManager.js';
-import { getActiveSectionIndex } from '../utils/storyContentUtils.js';
 
 const StoryContext = createContext(null);
 
 export function StoryProvider({ children }) {
-  const navigate = useNavigate();
-  const { token, clearTokenOnFailure } = useAuthContext();
-  
-  // Consume our optimized logic hook
-  const storyManager = useStoryManager(token, navigate);
+    const { token, clearTokenOnFailure } = useAuthContext();
+    const story = useStoryReducer();
+    const crud = useStoryCrud({
+        token,
+        clearTokenOnFailure,
+        sections: story.sections,
+        setSections: story.setSections,
+        resetSections: story.resetSections,
+    });
 
-  // Simple UI State (Modals, Views)
-  const [editingMode, setEditingMode] = useState('chapter');
-  const [settingsStory, setSettingsStory] = useState(null);
-  const [templateWizardOpen, setTemplateWizardOpen] = useState(false);
-  const [bookViewOpen, setBookViewOpen] = useState(false);
+    const { currentStory, setCurrentStory } = crud;
+    const title = currentStory?.title || '';
+    const storyTitleHtml = currentStory?.titleHtml || buildTitleHtml(title);
+    const chapterHeadingHtml = currentStory?.chapterHeadingHtml || buildChapterHeadingHtml();
 
-  // Initial Load
-  useEffect(() => {
-    if (!token) {
-      storyManager.setCurrentStory(null);
-      return;
-    }
-    storyManager.loadStories().catch(() => clearTokenOnFailure?.());
-  }, [token, storyManager.loadStories, clearTokenOnFailure]);
+    const patchStory = useCallback((patch) => {
+        setCurrentStory((prev) => (prev ? { ...prev, ...patch } : prev));
+    }, [setCurrentStory]);
 
-  // Derived calculations optimized with useMemo
-  const activeStoryId = storyManager.currentStory?.id ?? null;
-  const activeSectionIndex = useMemo(() => 
-    getActiveSectionIndex(storyManager.sections, storyManager.selectedBeatIndex, storyManager.selectedChapterIndex),
-    [storyManager.sections, storyManager.selectedBeatIndex, storyManager.selectedChapterIndex]
-  );
+    const value = {
+        ...crud,
+        sections: story.sections,
+        setSections: story.setSections,
+        addChapter: story.addChapter,
+        addBeat: story.addBeat,
+        deleteChapter: story.deleteChapter,
+        setSectionContentAtIndex: story.setSectionContentAtIndex,
+        renameBeat: story.renameBeat,
+        renameChapter: story.renameChapter,
 
-  const value = {
-    // Spread the manager to expose all data and functions
-    ...storyManager, 
-    
-    // Explicitly add UI state and derived values
-    activeStoryId,
-    activeSectionIndex,
-    editingMode, setEditingMode,
-    settingsStory, setSettingsStory,
-    templateWizardOpen, setTemplateWizardOpen,
-    bookViewOpen, setBookViewOpen,
-    
-    // Quick Actions
-    openStorySettings: (story) => setSettingsStory(story),
-    closeStorySettings: () => setSettingsStory(null),
-    openTemplateWizard: () => setTemplateWizardOpen(true),
-    closeTemplateWizard: () => setTemplateWizardOpen(false),
-  };
+        title,
+        storyTitleHtml,
+        chapterHeadingHtml,
+        setTitle: (t) => patchStory({ title: t }),
+        setStoryTitleHtml: (html) => patchStory({ titleHtml: html }),
+        setChapterHeadingHtml: (html) => patchStory({ chapterHeadingHtml: html }),
+    };
 
-  return <StoryContext.Provider value={value}>{children}</StoryContext.Provider>;
+    return <StoryContext.Provider value={value}>{children}</StoryContext.Provider>;
 }
 
 export function useStoryContext() {
-  const ctx = useContext(StoryContext);
-  if (!ctx) throw new Error('useStoryContext must be used within StoryProvider');
-  return ctx;
+    const ctx = useContext(StoryContext);
+    if (!ctx) throw new Error('useStoryContext must be used within StoryProvider');
+    return ctx;
 }
