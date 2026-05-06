@@ -4,6 +4,15 @@
 import { ObjectId } from 'mongodb';
 import { IStoryRepository } from '../../core/ports/IStoryRepository.js';
 
+const MUTABLE_FIELDS = [
+    'title', 'titleHtml', 'chapterHeadingHtml', 'content', 'sections',
+    'facts', 'chapterSummaries', 'beatSummaries', 'storySummary', 'genre', 'templateId',
+];
+
+function pickDefined(obj, fields) {
+    return Object.fromEntries(fields.filter((k) => obj[k] !== undefined).map((k) => [k, obj[k]]));
+}
+
 export default class MongoStoryRepository extends IStoryRepository {
     constructor(config = {}) {
         super();
@@ -34,11 +43,9 @@ export default class MongoStoryRepository extends IStoryRepository {
         userId,
         titleHtml,
         chapterHeadingHtml,
-        storySummaryShort,
-        storySummaryLong,
+        storySummary,
         chapterSummaries,
         beatSummaries,
-        storySummary,
     }) {
         const collection = await this.getCollection();
         const now = new Date();
@@ -52,8 +59,6 @@ export default class MongoStoryRepository extends IStoryRepository {
             chapterSummaries: chapterSummaries || [],
             beatSummaries: beatSummaries || [],
             storySummary: storySummary || '',
-            storySummaryShort: storySummaryShort || '',
-            storySummaryLong: storySummaryLong || '',
             genre,
             templateId,
             userId,
@@ -66,25 +71,7 @@ export default class MongoStoryRepository extends IStoryRepository {
 
     async updateStory(id, updates = {}) {
         const collection = await this.getCollection();
-        const now = new Date();
-        // Only include fields that were explicitly provided — never overwrite existing values with undefined.
-        const payload = {
-            ...(updates.title !== undefined ? { title: updates.title } : {}),
-            ...(updates.titleHtml !== undefined ? { titleHtml: updates.titleHtml } : {}),
-            ...(updates.chapterHeadingHtml !== undefined ? { chapterHeadingHtml: updates.chapterHeadingHtml } : {}),
-            ...(updates.content !== undefined ? { content: updates.content } : {}),
-            ...(updates.sections !== undefined ? { sections: updates.sections } : {}),
-            ...(updates.facts !== undefined ? { facts: updates.facts } : {}),
-            ...(updates.chapterSummaries !== undefined ? { chapterSummaries: updates.chapterSummaries } : {}),
-            ...(updates.beatSummaries !== undefined ? { beatSummaries: updates.beatSummaries } : {}),
-            ...(updates.storySummary !== undefined ? { storySummary: updates.storySummary } : {}),
-            ...(updates.storySummaryShort !== undefined ? { storySummaryShort: updates.storySummaryShort } : {}),
-            ...(updates.storySummaryLong !== undefined ? { storySummaryLong: updates.storySummaryLong } : {}),
-            ...(updates.genre !== undefined ? { genre: updates.genre } : {}),
-            ...(updates.templateId !== undefined ? { templateId: updates.templateId } : {}),
-            updatedAt: now,
-        };
-
+        const payload = { ...pickDefined(updates, MUTABLE_FIELDS), updatedAt: new Date() };
         await collection.updateOne({ _id: new ObjectId(id) }, { $set: payload });
         return this.getStoryById(id);
     }
@@ -119,25 +106,7 @@ export default class MongoStoryRepository extends IStoryRepository {
         return stories.map((story) => this.mapStory(story));
     }
 
-    mapStory(story) {
-        return {
-            id: story._id.toString(),
-            title: story.title,
-            titleHtml: story.titleHtml,
-            chapterHeadingHtml: story.chapterHeadingHtml,
-            content: story.content,
-            sections: story.sections,
-            facts: story.facts || [],
-            chapterSummaries: story.chapterSummaries || [],
-            beatSummaries: story.beatSummaries || [],
-            storySummary: story.storySummary || '',
-            storySummaryShort: story.storySummaryShort || '',
-            storySummaryLong: story.storySummaryLong || '',
-            genre: story.genre,
-            templateId: story.templateId,
-            userId: story.userId,
-            createdAt: story.createdAt,
-            updatedAt: story.updatedAt,
-        };
+    mapStory({ _id, ...rest }) {
+        return { id: _id.toString(), ...rest };
     }
 }

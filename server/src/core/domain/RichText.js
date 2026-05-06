@@ -62,3 +62,12 @@ export function richTextToPlainText(input) {
 
     return normalizeWhitespace(text);
 }
+
+export function buildContentFromSections(sections = []) {
+    return sections
+        .map((s) => {
+            const body = richTextToPlainText(s.content);
+            return body ? `${s.title || 'Section'}\n${body}` : (s.title || 'Section');
+        })
+        .join('\n\n');
+}
