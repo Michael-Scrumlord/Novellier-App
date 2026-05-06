@@ -924,7 +924,7 @@
     height: 48px;
     border-radius: 50%;
     background: var(--accent-soft);
-    color: var(--terracotta);
+    color: var(--ink);
     display: flex;
     align-items: center;
     justify-content: center;
