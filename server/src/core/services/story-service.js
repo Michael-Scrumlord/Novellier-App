@@ -1,3 +1,5 @@
+import { buildContentFromSections } from '../domain/RichText.js';
+
 export class StoryService {
     constructor({ storyRepository, summarizationService, indexingService }) {
         if (!storyRepository) {
@@ -20,7 +22,7 @@ export class StoryService {
             throw new Error('content or sections are required');
         }
 
-        const normalizedContent = hasContent ? content : this._buildContentFromSections(sections);
+        const normalizedContent = hasContent ? content : buildContentFromSections(sections);
 
         // Summaries are generated at write time so read paths stay sort of lightweight.
         await this.summarizationService?.ensureSummaryModelReady();
@@ -40,31 +42,28 @@ export class StoryService {
 
     async updateStory(id, updates, userId, userRole) {
         const story = await this._getStoryAndVerifyAccess(id, userId, userRole);
-
         const updatePayload = { ...updates };
-        if (updates.content !== undefined) {
-            updatePayload.content = updates.content;
-        } else if (Array.isArray(updates.sections)) {
-            updatePayload.content = this._buildContentFromSections(updates.sections);
-        }
 
-        await this.summarizationService?.ensureSummaryModelReady();
+        if (Array.isArray(updates.sections)) {
+            if (updates.content === undefined) {
+                updatePayload.content = buildContentFromSections(updates.sections);
+            }
 
-        if (Array.isArray(updates.sections) && this.summarizationService) {
-            const summaries = await this.summarizationService.buildStorySummaries(
-                updates.title || story.title,
-                updates.sections
-            );
-            updatePayload.chapterSummaries = summaries.chapterSummaries;
-            updatePayload.beatSummaries = summaries.beatSummaries;
-            updatePayload.storySummary = summaries.storySummary;
-            updatePayload.storySummaryShort = summaries.storySummaryShort;
-            updatePayload.storySummaryLong = summaries.storySummaryLong;
+            await this.summarizationService?.ensureSummaryModelReady();
+
+            if (this.summarizationService) {
+                const { chapterSummaries, beatSummaries, storySummary } =
+                    await this.summarizationService.buildStorySummaries(
+                        updates.title || story.title,
+                        updates.sections
+                    );
+                Object.assign(updatePayload, { chapterSummaries, beatSummaries, storySummary });
+            }
         }
 
         const updatedStory = await this.storyRepository.updateStory(id, updatePayload);
 
-        if (updates.content || updates.sections) {
+        if (updates.content !== undefined || Array.isArray(updates.sections)) {
             this.indexingService?.triggerIndexing(id, { ...story, ...updates });
         }
 
@@ -110,11 +109,5 @@ export class StoryService {
         }
 
         return story;
-    }
-
-    _buildContentFromSections(sections = []) {
-        return sections
-            .map((section) => `${section.title || 'Section'}\n${section.content || ''}`)
-            .join('\n\n');
     }
 }
