@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { useStoryContext } from '../../contexts/StoryContext.jsx';
 import { useEditorUIContext } from '../../contexts/EditorUIContext.jsx';
-import LexicalEditor, { getWordCount } from './LexicalEditor';
+import LexicalEditor from './LexicalEditor';
+import { getWordCount } from '../../utils/lexicalUtils.js';
 import './StoryEditor.css';
 
 function getEyebrowText(editingMode, currentBeat) {
@@ -105,7 +106,7 @@ export default function StoryEditor({ onSave, onOpenBookView }) {
     const prevSectionIndexRef = useRef(sectionIndex);
     const [wordCount, setWordCount] = useState(() => getWordCount(currentSection?.content));
 
-    useEffect(() => {
+    useLayoutEffect(() => {
         const prev = prevSectionIndexRef.current;
         if (prev !== sectionIndex) {
             if (contentRef.current !== null) {
@@ -115,7 +116,7 @@ export default function StoryEditor({ onSave, onOpenBookView }) {
             prevSectionIndexRef.current = sectionIndex;
             setWordCount(getWordCount(currentSection?.content));
         }
-    }, [sectionIndex, setSectionContentAtIndex, currentSection?.content]);
+    }, [sectionIndex, setSectionContentAtIndex]);
 
     const handleEditorChange = useCallback((newContent) => {
         contentRef.current = newContent;

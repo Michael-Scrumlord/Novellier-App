@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import {
     LexicalComposer,
     RichTextPlugin,
@@ -8,15 +8,6 @@ import {
     ListPlugin,
     LinkPlugin,
     TabIndentationPlugin,
-    useLexicalComposerContext,
-    $getRoot,
-    $createParagraphNode,
-    $createTextNode,
-    $getSelection,
-    $isRangeSelection,
-    KEY_TAB_COMMAND,
-    COMMAND_PRIORITY_LOW,
-    $createTabNode,
     TabNode,
     HeadingNode,
     QuoteNode,
@@ -26,6 +17,8 @@ import {
     LinkNode,
 } from '../../lib/lexical-bundle.js';
 import LexicalToolbar from './LexicalToolbar.jsx';
+import EditorSyncPlugin from './plugins/EditorSyncPlugin.jsx';
+import TabPlugin from './plugins/TabPlugin.jsx';
 import { EDITOR_MARGIN_PRESETS } from '../../constants/typography.js';
 import './LexicalEditor.css';
 
@@ -56,79 +49,6 @@ const editorConfig = {
     onError: (error) => console.error('Lexical Engine Error:', error),
 };
 
-function EditorSyncPlugin({ value, onChange }) {
-    const [editor] = useLexicalComposerContext();
-    const lastEditorStateString = useRef(null);
-
-    useEffect(() => {
-        return editor.registerUpdateListener(({ editorState, dirtyElements, dirtyLeaves }) => {
-            if (dirtyElements.size === 0 && dirtyLeaves.size === 0) return;
-
-            const stringifiedState = JSON.stringify(editorState.toJSON());
-            lastEditorStateString.current = stringifiedState;
-
-            if (typeof onChange === 'function') {
-                onChange(stringifiedState);
-            }
-        });
-    }, [editor, onChange]);
-
-    useEffect(() => {
-        if (value === lastEditorStateString.current) return;
-        lastEditorStateString.current = value;
-
-        if (!value || value === '{}' || value.trim() === '') {
-            editor.update(() => $getRoot().clear());
-            return;
-        }
-
-        try {
-            const parsedState = JSON.parse(value);
-            if (parsedState && parsedState.root) {
-                editor.setEditorState(editor.parseEditorState(value));
-            }
-        } catch (e) {
-            editor.update(() => {
-                const root = $getRoot();
-                root.clear();
-                value
-                    .split('\n')
-                    .filter((line) => line.trim() !== '')
-                    .forEach((line) => {
-                        const p = $createParagraphNode();
-                        p.append($createTextNode(line));
-                        root.append(p);
-                    });
-            });
-        }
-    }, [editor, value]);
-
-    return null;
-}
-
-function TabPlugin() {
-    const [editor] = useLexicalComposerContext();
-
-    useEffect(() => {
-        return editor.registerCommand(
-            KEY_TAB_COMMAND,
-            (event) => {
-                event.preventDefault();
-                editor.update(() => {
-                    const selection = $getSelection();
-                    if ($isRangeSelection(selection)) {
-                        selection.insertNodes([$createTabNode()]);
-                    }
-                });
-                return true;
-            },
-            COMMAND_PRIORITY_LOW
-        );
-    }, [editor]);
-
-    return null;
-}
-
 export default function LexicalEditor({ value, onChange, placeholder }) {
     const [brightness, setBrightness] = useState(0);
     const [marginPreset, setMarginPreset] = useState('normal');
@@ -154,9 +74,7 @@ export default function LexicalEditor({ value, onChange, placeholder }) {
                 '--editor-font-weight': fontWeight,
             }}
         >
-            <LexicalComposer
-                initialConfig={{ ...editorConfig, editorState: () => $getRoot().clear() }}
-            >
+            <LexicalComposer initialConfig={editorConfig}>
                 <LexicalToolbar
                     brightness={brightness}
                     onSetBrightness={setBrightness}
@@ -189,26 +107,3 @@ export default function LexicalEditor({ value, onChange, placeholder }) {
     );
 }
 
-export function getTextFromLexicalState(content) {
-    try {
-        if (!content) return '';
-        const state = JSON.parse(content);
-        let text = '';
-        const extractText = (nodes) => {
-            if (!Array.isArray(nodes)) return;
-            nodes.forEach((node) => {
-                if (node.text) text += node.text;
-                if (node.children) extractText(node.children);
-            });
-        };
-        extractText(state.root?.children);
-        return text;
-    } catch {
-        return typeof content === 'string' ? content : '';
-    }
-}
-
-export function getWordCount(content) {
-    const text = getTextFromLexicalState(content);
-    return text.trim() ? text.trim().split(/\s+/).length : 0;
-}
