@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { getWordCount } from '../LexicalEditor';
+import { getWordCount } from '../../../utils/lexicalUtils.js';
 
 function EditableLabel({ value, onCommit, placeholder, isEditing, onEndEdit, onSelect }) {
     const [draft, setDraft] = useState(value);
