@@ -8,6 +8,13 @@ import {
     handleSetSectionContent,
 } from '../utils/storyStateUtils.js';
 
+function computeNextChapterIndex(beatIndex, chapterIdx, currentBeatIdx, currentChapterIdx) {
+    if (currentBeatIdx === beatIndex && currentChapterIdx >= chapterIdx) {
+        return Math.max(0, currentChapterIdx - 1);
+    }
+    return currentChapterIdx;
+}
+
 function defaultSections() {
     const id = `part-${Date.now()}`;
     return [{
@@ -70,12 +77,9 @@ export function useStoryReducer() {
         addChapter: useCallback((beatIndex, beats) => dispatch({ type: 'ADD_CHAPTER', beatIndex, beats }), []),
         addBeat: useCallback(() => dispatch({ type: 'ADD_BEAT' }), []),
         deleteChapter: useCallback((beatIndex, chapterIdx, currentBeatIdx, currentChapterIdx, beats) => {
-            const { nextChapterIndex } = handleDeleteChapter(
-                sections, beatIndex, chapterIdx, currentBeatIdx, currentChapterIdx, beats,
-            );
             dispatch({ type: 'DELETE_CHAPTER', beatIndex, chapterIdx, currentBeatIdx, currentChapterIdx, beats });
-            return nextChapterIndex;
-        }, [sections]),
+            return computeNextChapterIndex(beatIndex, chapterIdx, currentBeatIdx, currentChapterIdx);
+        }, []),
         setSectionContentAtIndex: useCallback((index, content) =>
             dispatch({ type: 'SET_CONTENT', index, content }), []),
         renameBeat: useCallback((beatIndex, title, beats) =>

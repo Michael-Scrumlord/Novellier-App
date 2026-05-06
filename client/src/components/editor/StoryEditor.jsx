@@ -1,3 +1,5 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { useStoryContext } from '../../contexts/StoryContext.jsx';
 import { useEditorUIContext } from '../../contexts/EditorUIContext.jsx';
 import LexicalEditor, { getWordCount } from './LexicalEditor';
@@ -99,9 +101,37 @@ export default function StoryEditor({ onSave, onOpenBookView }) {
         headerContext = 'Chapter Heading';
     }
 
-    const handleSave = onSave || (() => saveStory());
+    const contentRef = useRef(null);
+    const prevSectionIndexRef = useRef(sectionIndex);
+    const [wordCount, setWordCount] = useState(() => getWordCount(currentSection?.content));
 
-    const wordCount = getWordCount(currentSection?.content);
+    useEffect(() => {
+        const prev = prevSectionIndexRef.current;
+        if (prev !== sectionIndex) {
+            if (contentRef.current !== null) {
+                setSectionContentAtIndex(prev, contentRef.current);
+            }
+            contentRef.current = null;
+            prevSectionIndexRef.current = sectionIndex;
+            setWordCount(getWordCount(currentSection?.content));
+        }
+    }, [sectionIndex, setSectionContentAtIndex, currentSection?.content]);
+
+    const handleEditorChange = useCallback((newContent) => {
+        contentRef.current = newContent;
+        setWordCount(getWordCount(newContent));
+    }, []);
+
+    const handleSave = useCallback(() => {
+        if (contentRef.current !== null) {
+            flushSync(() => setSectionContentAtIndex(sectionIndex, contentRef.current));
+        }
+        if (onSave) {
+            onSave();
+        } else {
+            saveStory();
+        }
+    }, [onSave, saveStory, setSectionContentAtIndex, sectionIndex]);
 
     return (
         <section className="spatial-sidebar story-editor">
@@ -126,7 +156,7 @@ export default function StoryEditor({ onSave, onOpenBookView }) {
                         {currentSection && (
                             <LexicalEditor
                                 value={currentSection.content}
-                                onChange={(newContent) => setSectionContentAtIndex(sectionIndex, newContent)}
+                                onChange={handleEditorChange}
                                 placeholder="Draft this chapter..."
                             />
                         )}

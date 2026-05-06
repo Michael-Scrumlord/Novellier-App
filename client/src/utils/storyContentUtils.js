@@ -13,13 +13,14 @@ export function buildTitleHtml(titleValue) {
     return `<h1 class="book-title">${escapeHtml(titleValue || 'Untitled draft')}</h1>`;
 }
 
+const DEFAULT_CHAPTER_HEADING = '<h2 class="chapter-heading">Chapter {{number}}: {{title}}</h2>';
+
 export function buildChapterHeadingHtml() {
-    return '<h2 class="chapter-heading">Chapter {{number}}: {{title}}</h2>';
+    return DEFAULT_CHAPTER_HEADING;
 }
 
 function resolveChapterHeadingHtml(template, section, index) {
-    const defaultTemplate = buildChapterHeadingHtml();
-    const safeTemplate = template || defaultTemplate;
+    const safeTemplate = template || DEFAULT_CHAPTER_HEADING;
     const chapterNumber = index + 1;
     const chapterTitle = escapeHtml(section?.title || `Chapter ${chapterNumber}`);
     return safeTemplate
@@ -28,8 +29,7 @@ function resolveChapterHeadingHtml(template, section, index) {
 }
 
 export function buildStoryContent(sections, chapterHeadingHtml) {
-    const defaultHeading = buildChapterHeadingHtml();
-    const template = chapterHeadingHtml || defaultHeading;
+    const template = chapterHeadingHtml || DEFAULT_CHAPTER_HEADING;
     return sections
         .map((section, index) => {
             const headingHtml = resolveChapterHeadingHtml(template, section, index);
