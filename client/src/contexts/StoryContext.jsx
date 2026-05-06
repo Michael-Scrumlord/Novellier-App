@@ -18,8 +18,7 @@ export function StoryProvider({ children }) {
     });
 
     const { currentStory, setCurrentStory } = crud;
-    const title = currentStory?.title || '';
-    const storyTitleHtml = currentStory?.titleHtml || buildTitleHtml(title);
+    const storyTitleHtml = currentStory?.titleHtml || buildTitleHtml(currentStory?.title || '');
     const chapterHeadingHtml = currentStory?.chapterHeadingHtml || buildChapterHeadingHtml();
 
     const patchStory = useCallback((patch) => {
@@ -37,7 +36,6 @@ export function StoryProvider({ children }) {
         renameBeat: story.renameBeat,
         renameChapter: story.renameChapter,
 
-        title,
         storyTitleHtml,
         chapterHeadingHtml,
         setTitle: (t) => patchStory({ title: t }),
