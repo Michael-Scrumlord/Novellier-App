@@ -21,3 +21,18 @@ export function parseFactArray(text) {
 export function parseCompletionAsFacts(raw) {
     return parseFactArray(extractFactsFromCompletion(raw));
 }
+
+export function parseCompletionAsIndices(raw) {
+    const text = extractFactsFromCompletion(raw);
+    if (typeof text !== 'string') return [];
+    const match = text.match(/\[([\s\S]*)\]/);
+    if (!match) return [];
+    try {
+        const parsed = JSON.parse(match[0]);
+        return Array.isArray(parsed)
+            ? parsed.filter((n) => typeof n === 'number' && Number.isInteger(n) && n > 0)
+            : [];
+    } catch {
+        return [];
+    }
+}

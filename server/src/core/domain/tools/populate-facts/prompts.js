@@ -40,12 +40,11 @@ export function buildBatchVerifyPrompt(batchItems) {
 
     return [
         'You are a fact-verification service.',
-        'Each candidate below has a FACT and a supporting EXCERPT.',
-        'Return ONLY a bare JSON array of the EXACT candidate strings that are explicitly stated in their excerpt.',
-        'DO NOT RETURN A FACT UNLESS IT IS CLEARLY AND EXPLICITLY SUPPORTED BY ITS EXCERPT.',
-        'Copy each accepted fact string verbatim — do not rephrase or modify.',
-        'Omit any fact not clearly supported by its excerpt.',
-        'NO MARKDOWN. NO PREAMBLE. JUST THE ARRAY.',
+        'Each numbered candidate below has a FACT and a supporting EXCERPT.',
+        'Return ONLY a bare JSON array of the 1-based INDEX numbers of candidates clearly and explicitly supported by their excerpt.',
+        'Example: if candidates 1 and 3 are supported, return [1, 3]. If none are supported, return [].',
+        'DO NOT INCLUDE AN INDEX UNLESS THE FACT IS CLEARLY AND EXPLICITLY STATED IN ITS EXCERPT.',
+        'NO MARKDOWN. NO PREAMBLE. JUST THE ARRAY OF NUMBERS.',
         '',
         'CANDIDATES:',
         candidates,

@@ -13,6 +13,91 @@ const TOOL_TYPES = Object.freeze({
     LIST_TOOLS: 'list_tools',
 });
 
+// Each handler declares needsContext (whether storyId + storyService are required) and a
+// run(ctx, facts) method. Handlers return { updatedFacts, factsMutated, failureReason? }.
+// A non-empty failureReason causes the loop to emit tool_failed instead of tool_succeeded.
+const TOOL_HANDLERS = {
+    [TOOL_TYPES.ADD_FACT]: {
+        needsContext: true,
+        run(ctx, facts) {
+            const result = handleAddFact(ctx.args, facts);
+            ctx.debugToolMode('add_fact_evaluated', {
+                index: ctx.index,
+                toolName: ctx.toolName,
+                atomicFactValid: result.ok,
+                atomicFactReason: result.failureReason || null,
+                beforeCount: facts.length,
+                afterCount: result.updatedFacts.length,
+            });
+            if (!result.ok) {
+                return { updatedFacts: facts, factsMutated: false, failureReason: `invalid_fact: ${result.failureReason}` };
+            }
+            if (result.factsMutated) {
+                ctx.debugToolMode('add_fact_mutated', { index: ctx.index, toolName: ctx.toolName, afterCount: result.updatedFacts.length });
+            }
+            return { updatedFacts: result.updatedFacts, factsMutated: result.factsMutated };
+        },
+    },
+
+    [TOOL_TYPES.REMOVE_FACT]: {
+        needsContext: true,
+        run(ctx, facts) {
+            const result = handleRemoveFact(ctx.args, facts);
+            ctx.debugToolMode('remove_fact_evaluated', {
+                index: ctx.index,
+                toolName: ctx.toolName,
+                beforeCount: facts.length,
+                afterCount: result.updatedFacts.length,
+                removed: result.factsMutated,
+            });
+            return { updatedFacts: result.updatedFacts, factsMutated: result.factsMutated };
+        },
+    },
+
+    [TOOL_TYPES.POPULATE_FACTS]: {
+        needsContext: true,
+        async run(ctx, facts) {
+            const result = await handlePopulateFacts(ctx.args, {
+                aiService: ctx.aiService,
+                targetModel: ctx.targetModel,
+                existingFacts: facts,
+                sections: ctx.options?.sections || [],
+                chapterSummaries: ctx.options?.chapterSummaries || [],
+                jobQueue: ctx.jobQueue || null,
+                onProgress: ctx.onProgress,
+                logger: ctx.logger,
+            });
+            return { updatedFacts: result.updatedFacts, factsMutated: result.factsMutated };
+        },
+    },
+
+    [TOOL_TYPES.SECTION_FACTS]: {
+        needsContext: true,
+        async run(ctx, facts) {
+            const result = await handleSectionFacts(ctx.args, {
+                aiService: ctx.aiService,
+                targetModel: ctx.targetModel,
+                existingFacts: facts,
+                sectionContent: ctx.options?.storyText || '',
+                jobQueue: ctx.jobQueue || null,
+                onProgress: ctx.onProgress,
+                logger: ctx.logger,
+            });
+            return { updatedFacts: result.updatedFacts, factsMutated: result.factsMutated };
+        },
+    },
+
+    [TOOL_TYPES.LIST_TOOLS]: {
+        needsContext: false,
+        run(ctx) {
+            const tools = handleListTools(ctx.aiOptions?.tools || []);
+            ctx.debugToolMode('list_tools_invoked', { index: ctx.index, toolName: ctx.toolName, availableCount: tools.length });
+            ctx.onProgress?.({ kind: PROGRESS.LIST_TOOLS, tools });
+            return {};
+        },
+    },
+};
+
 export function getToolName(call) {
     return call?.function?.name || call?.type || 'unknown_tool';
 }
@@ -33,119 +118,34 @@ export function createToolEvent(type, toolName, index, extra = {}) {
     return { type, toolName, index, timestamp: new Date().toISOString(), ...extra };
 }
 
-function _requireStoryContext({ canMutateFacts, ctx }) {
-    if (canMutateFacts) return true;
-    ctx.debugToolMode('tool_blocked_missing_story_context', { index: ctx.index, toolName: ctx.toolName });
-    ctx.emitToolEvent(createToolEvent('tool_failed', ctx.toolName, ctx.index, { error: 'storyId required for mutation' }));
-    return false;
-}
+// Wraps generateCompletion and generateStreamingCompletion to log conversation traces.
+// All other aiService methods are forwarded explicitly to avoid prototype spread bugs.
+function buildLoggingAiService(aiService, logConversation) {
+    if (!logConversation) return aiService;
 
-function _runAddFact({ canMutateFacts, ctx, updatedFacts }) {
-    if (!_requireStoryContext({ canMutateFacts, ctx })) {
-        return { updatedFacts, factsMutated: false, skipSuccessEvent: true };
-    }
+    const log = (prompt, res) => {
+        const content = typeof res === 'string' ? res : (res?.content || '');
+        logConversation(prompt, content || JSON.stringify(res, null, 2));
+    };
 
-    const result = handleAddFact(ctx.args, updatedFacts);
-
-    ctx.debugToolMode('add_fact_evaluated', {
-        index: ctx.index,
-        toolName: ctx.toolName,
-        atomicFactValid: result.ok,
-        atomicFactReason: result.failureReason || null,
-        beforeCount: updatedFacts.length,
-        afterCount: result.updatedFacts.length,
-    });
-
-    if (!result.ok) {
-        ctx.emitToolEvent(createToolEvent('tool_failed', ctx.toolName, ctx.index, { error: `invalid_fact: ${result.failureReason}` }));
-        return { updatedFacts, factsMutated: false, skipSuccessEvent: true };
-    }
-
-    if (result.factsMutated) {
-        ctx.debugToolMode('add_fact_mutated', { index: ctx.index, toolName: ctx.toolName, afterCount: result.updatedFacts.length });
-    }
-
-    return { updatedFacts: result.updatedFacts, factsMutated: result.factsMutated, skipSuccessEvent: false };
-}
-
-function _runRemoveFact({ canMutateFacts, ctx, updatedFacts }) {
-    if (!_requireStoryContext({ canMutateFacts, ctx })) {
-        return { updatedFacts, factsMutated: false, skipSuccessEvent: true };
-    }
-
-    const result = handleRemoveFact(ctx.args, updatedFacts);
-
-    ctx.debugToolMode('remove_fact_evaluated', {
-        index: ctx.index,
-        toolName: ctx.toolName,
-        beforeCount: updatedFacts.length,
-        afterCount: result.updatedFacts.length,
-        removed: result.factsMutated,
-    });
-
-    return { updatedFacts: result.updatedFacts, factsMutated: result.factsMutated, skipSuccessEvent: false };
-}
-
-async function _runPopulateFacts({ canMutateFacts, ctx, updatedFacts }) {
-    if (!_requireStoryContext({ canMutateFacts, ctx })) {
-        return { updatedFacts, factsMutated: false, skipSuccessEvent: true };
-    }
-
-    const result = await handlePopulateFacts(ctx.args, {
-        aiService: ctx.aiService,
-        targetModel: ctx.targetModel,
-        existingFacts: updatedFacts,
-        sections: ctx.options?.sections || [],
-        chapterSummaries: ctx.options?.chapterSummaries || [],
-        jobQueue: ctx.jobQueue || null,
-        onProgress: ctx.onProgress,
-        logger: ctx.logger,
-    });
-
-    return { updatedFacts: result.updatedFacts, factsMutated: result.factsMutated, skipSuccessEvent: false };
-}
-
-async function _runSectionFacts({ canMutateFacts, ctx, updatedFacts }) {
-    if (!_requireStoryContext({ canMutateFacts, ctx })) {
-        return { updatedFacts, factsMutated: false, skipSuccessEvent: true };
-    }
-
-    const result = await handleSectionFacts(ctx.args, {
-        aiService: ctx.aiService,
-        targetModel: ctx.targetModel,
-        existingFacts: updatedFacts,
-        sectionContent: ctx.options?.storyText || '',
-        jobQueue: ctx.jobQueue || null,
-        onProgress: ctx.onProgress,
-        logger: ctx.logger,
-    });
-
-    return { updatedFacts: result.updatedFacts, factsMutated: result.factsMutated, skipSuccessEvent: false };
-}
-
-function _runListTools({ ctx }) {
-    const tools = handleListTools(ctx.aiOptions?.tools || []);
-    ctx.debugToolMode('list_tools_invoked', { index: ctx.index, toolName: ctx.toolName, availableCount: tools.length });
-    ctx.onProgress?.({ kind: PROGRESS.LIST_TOOLS, tools });
-    return { skipSuccessEvent: false };
-}
-
-async function _runToolCall(canMutateFacts, ctx, updatedFacts) {
-    switch (ctx.toolName) {
-        case TOOL_TYPES.ADD_FACT:
-            return _runAddFact({ canMutateFacts, ctx, updatedFacts });
-        case TOOL_TYPES.REMOVE_FACT:
-            return _runRemoveFact({ canMutateFacts, ctx, updatedFacts });
-        case TOOL_TYPES.POPULATE_FACTS:
-            return await _runPopulateFacts({ canMutateFacts, ctx, updatedFacts });
-        case TOOL_TYPES.SECTION_FACTS:
-            return await _runSectionFacts({ canMutateFacts, ctx, updatedFacts });
-        case TOOL_TYPES.LIST_TOOLS:
-            return _runListTools({ ctx });
-        default:
-            ctx.emitToolEvent(createToolEvent('tool_failed', ctx.toolName, ctx.index, { error: `unsupported_tool: ${ctx.toolName}` }));
-            return { updatedFacts, factsMutated: false, skipSuccessEvent: true };
-    }
+    return {
+        generateCompletion: async (prompt, aiOpts) => {
+            const res = await aiService.generateCompletion(prompt, aiOpts);
+            log(prompt, res);
+            return res;
+        },
+        generateStreamingCompletion: async (prompt, aiOpts, onChunk) => {
+            let accumulated = '';
+            const res = await aiService.generateStreamingCompletion(prompt, aiOpts, (chunk) => {
+                accumulated += chunk;
+                onChunk?.(chunk);
+            });
+            log(prompt, accumulated || res);
+            return res;
+        },
+        ensureModelAvailable: (model) => aiService.ensureModelAvailable(model),
+        warmupModel: (model) => aiService.warmupModel?.(model),
+    };
 }
 
 export async function executeToolCalls(extractedToolCalls, {
@@ -160,42 +160,53 @@ export async function executeToolCalls(extractedToolCalls, {
     onProgress,
     emitToolEvent,
     debugToolMode,
-    onToolStarted,
+    logConversation,
 }) {
     const canMutateFacts = Boolean(storyService && options.storyId);
     let factsMutated = false;
     let updatedFacts = [...currentFacts];
+    const trackedAiService = buildLoggingAiService(aiService, logConversation);
+
+    // Pre-pass: announce all requested tools before any begin executing.
+    extractedToolCalls.forEach((call, i) =>
+        emitToolEvent(createToolEvent('tool_requested', getToolName(call), i, { arguments: getToolArguments(call) }))
+    );
 
     for (let index = 0; index < extractedToolCalls.length; index++) {
         const call = extractedToolCalls[index];
         const toolName = getToolName(call);
         const args = getToolArguments(call);
 
+        const handler = TOOL_HANDLERS[toolName];
+        if (!handler) {
+            emitToolEvent(createToolEvent('tool_failed', toolName, index, { error: `unsupported_tool: ${toolName}` }));
+            continue;
+        }
+
+        if (handler.needsContext && !canMutateFacts) {
+            debugToolMode('tool_blocked_missing_story_context', { index, toolName });
+            emitToolEvent(createToolEvent('tool_failed', toolName, index, { error: 'storyId required for mutation' }));
+            continue;
+        }
+
         const ctx = {
-            index,
-            toolName,
-            args,
-            aiOptions,
-            options,
-            targetModel,
-            aiService,
-            jobQueue,
-            logger,
-            onProgress,
-            emitToolEvent,
-            debugToolMode,
+            index, toolName, args, aiOptions, options, targetModel,
+            aiService: trackedAiService, jobQueue, logger, onProgress, emitToolEvent, debugToolMode,
         };
 
         debugToolMode('tool_started', { index, toolName, canMutateFacts, arguments: args });
         emitToolEvent(createToolEvent('tool_started', toolName, index, { arguments: args }));
 
         try {
-            const result = await _runToolCall(canMutateFacts, ctx, updatedFacts);
+            const result = await handler.run(ctx, updatedFacts);
 
-            updatedFacts = result.updatedFacts || updatedFacts;
+            updatedFacts = result.updatedFacts ?? updatedFacts;
             factsMutated = factsMutated || Boolean(result.factsMutated);
 
-            if (!result.skipSuccessEvent) {
+            if (result.failureReason) {
+                emitToolEvent(createToolEvent('tool_failed', toolName, index, { error: result.failureReason }));
+                debugToolMode('tool_soft_failed', { index, toolName, reason: result.failureReason });
+            } else {
                 emitToolEvent(createToolEvent('tool_succeeded', toolName, index));
                 debugToolMode('tool_succeeded', { index, toolName });
             }

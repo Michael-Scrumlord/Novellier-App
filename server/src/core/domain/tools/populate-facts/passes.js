@@ -9,7 +9,7 @@ import {
     CONSOLIDATE_MAX_TOKENS,
     BATCH_VERIFY_MAX_TOKENS,
 } from './prompts.js';
-import { parseCompletionAsFacts } from './fact-parsing.js';
+import { parseCompletionAsFacts, parseCompletionAsIndices } from './fact-parsing.js';
 import {
     FactValidator,
     pairWithSources,
@@ -78,10 +78,6 @@ async function batchVerifyCandidates({
             });
         }
 
-        const normalizedCandidates = new Map(
-            batch.map((item) => [item.fact.toLowerCase().trim(), item.fact])
-        );
-
         let verifiedSet = new Set();
         try {
             const raw = await runQueued(
@@ -94,11 +90,10 @@ async function batchVerifyCandidates({
                         { maxTokens: BATCH_VERIFY_MAX_TOKENS, model: targetModel }
                     )
             );
-            const parsed = parseCompletionAsFacts(raw);
-            for (const returned of parsed) {
-                const key = returned.toLowerCase().trim();
-                if (normalizedCandidates.has(key)) {
-                    verifiedSet.add(key);
+            const indices = parseCompletionAsIndices(raw);
+            for (const idx of indices) {
+                if (idx >= 1 && idx <= batch.length) {
+                    verifiedSet.add(batch[idx - 1].fact.toLowerCase().trim());
                 }
             }
         } catch (error) {

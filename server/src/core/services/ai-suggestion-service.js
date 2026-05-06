@@ -135,38 +135,12 @@ export class AISuggestionService extends ISuggestionService {
         const toolCalls = extractNativeToolCalls(result);
         if (!toolCalls) return;
 
-        toolCalls.forEach((call, index) => {
-            options.onToolEvent?.(
-                createToolEvent('tool_requested', getToolName(call), index, {
-                    arguments: getToolArguments(call),
-                })
-            );
-        });
-
-        const trackingAiService = {
-            ...this.aiService,
-            generateCompletion: async (prompt, aiOpts) => {
-                const res = await this.aiService.generateCompletion(prompt, aiOpts);
-                options.logConversation?.(prompt, extractContent(res) || JSON.stringify(res, null, 2));
-                return res;
-            },
-            generateStreamingCompletion: async (prompt, aiOpts, onChunk) => {
-                let accumulated = '';
-                const res = await this.aiService.generateStreamingCompletion(prompt, aiOpts, (chunk) => {
-                    accumulated += chunk;
-                    onChunk?.(chunk);
-                });
-                options.logConversation?.(prompt, accumulated || extractContent(res) || JSON.stringify(res, null, 2));
-                return res;
-            },
-        };
-
         const executionResult = await executeToolCalls(toolCalls, {
             aiOptions,
             currentFacts: storyFacts,
             options,
             targetModel,
-            aiService: trackingAiService,
+            aiService: this.aiService,
             storyService: this.storyFactsPort,
             jobQueue: this.jobQueue,
             logger: this.logger,
@@ -174,6 +148,7 @@ export class AISuggestionService extends ISuggestionService {
             emitToolEvent: (event) => options.onToolEvent?.(event),
             debugToolMode: (msg, meta) =>
                 options.mode === TOOL_MODE && this.logger.log(`[ToolDebug] ${msg} ${JSON.stringify(meta)}`),
+            logConversation: options.logConversation,
         });
 
         if (executionResult.factsMutated && executionResult.canMutateFacts && this.storyFactsPort) {
