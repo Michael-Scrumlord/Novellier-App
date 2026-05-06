@@ -116,7 +116,7 @@ body[data-theme='nature'] .nav__user-menu {
 }
 
 .nav__theme-option--active .nav__theme-label {
-    color: var(--terracotta);
+    color: var(--accent);
 }
 
 .nav__theme-dot {

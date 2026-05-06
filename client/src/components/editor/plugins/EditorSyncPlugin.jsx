@@ -6,12 +6,16 @@ import {
     $createTextNode,
 } from '../../../lib/lexical-bundle.js';
 
+// Minimal valid Lexical state: root with one empty paragraph.
+// Used to reset the editor when content is empty or missing.
+// Parsed at call-time rather than captured at render, because the editor state
+// at render (before DOM attachment) has an empty root, which Lexical forbids setting.
+const EMPTY_EDITOR_STATE =
+    '{"root":{"children":[{"children":[],"direction":null,"format":"","indent":0,"type":"paragraph","version":1}],"direction":null,"format":"","indent":0,"type":"root","version":1}}';
+
 export default function EditorSyncPlugin({ value, onChange }) {
     const [editor] = useLexicalComposerContext();
     const lastEditorStateString = useRef(null);
-    // Captured synchronously during first render — before any content loads.
-    // Used to clear the editor synchronously (setEditorState is sync; editor.update is not).
-    const emptyEditorState = useRef(editor.getEditorState());
 
     useEffect(() => {
         return editor.registerUpdateListener(({ editorState, dirtyElements, dirtyLeaves }) => {
@@ -35,7 +39,7 @@ export default function EditorSyncPlugin({ value, onChange }) {
             // and lastEditorStateString is set before this effect returns. An async
             // editor.update() would fire later and could corrupt lastEditorStateString
             // after we've already navigated to a different chapter.
-            editor.setEditorState(emptyEditorState.current);
+            editor.setEditorState(editor.parseEditorState(EMPTY_EDITOR_STATE));
             return;
         }
 

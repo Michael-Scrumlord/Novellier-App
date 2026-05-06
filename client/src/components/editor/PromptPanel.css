@@ -10,7 +10,7 @@
 .ai-markdown h3,
 .ai-markdown h4, 
 .ai-markdown p {
-    font-family: 'Georgia', serif;
+    /* font-family: 'Georgia', serif; I don't think I want this */
     color: var(--ink);
     margin: 1rem 0 0.5rem;
     line-height: 1.3;

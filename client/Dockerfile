@@ -15,7 +15,7 @@ CMD ["npm", "run", "dev"]
 
 # Build stage to compile the app for production.
 FROM base-stage AS build
-RUN npm install 
+RUN npm install
 COPY . .
 RUN npm run build
 
