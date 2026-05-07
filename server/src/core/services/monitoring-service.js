@@ -1,31 +1,33 @@
-// This is the service for infrastructure monitoring
-// It provides orchestrates access to Docker container status and MongoDB health information, abstracting away the details of how that data is retrieved and formatted.
-// Each query is independent, and this service acts as a thin layer that translates adapter results into a consistent domain shape for the controller to use.
+// Thin facade over IAIService.getTransportMetadata. The infrastructure adapter is owned by
+// LocalLLMAdapter; this service exists only to slice the metadata response into the three
+// shapes the controller endpoints expect.
 export class MonitoringService {
-    constructor({ dockerMonitor, mongoMonitor }) {
-        this.dockerMonitor = dockerMonitor || null;
-        this.mongoMonitor = mongoMonitor || null;
+    constructor({ aiService }) {
+        if (!aiService) throw new Error('MonitoringService requires aiService');
+        this.aiService = aiService;
     }
+
     async getContainers() {
-        if (!this.dockerMonitor) {
+        const { infrastructure } = await this.aiService.getTransportMetadata();
+        if (!infrastructure?.containers) {
             throw new Error('Docker monitoring is not available');
         }
-        const containers = await this.dockerMonitor.listContainers();
-        return { containers };
+        return { containers: infrastructure.containers };
     }
 
     async getVolumeStatus() {
-        if (!this.dockerMonitor) {
+        const { infrastructure } = await this.aiService.getTransportMetadata();
+        if (!infrastructure?.volumes) {
             throw new Error('Docker monitoring is not available');
         }
-        return this.dockerMonitor.getVolumeStatus();
+        return infrastructure.volumes;
     }
 
     async getMongoStatus() {
-        if (!this.mongoMonitor) {
+        const { infrastructure } = await this.aiService.getTransportMetadata();
+        if (!infrastructure?.mongo) {
             throw new Error('MongoDB monitoring is not available');
         }
-        const status = await this.mongoMonitor.getStatus();
-        return { status };
+        return { status: infrastructure.mongo };
     }
 }

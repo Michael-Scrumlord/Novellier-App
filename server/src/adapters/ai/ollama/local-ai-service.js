@@ -112,6 +112,16 @@ export class LocalAIService extends IAIService {
     getBaseUrl() { return this.transport.getBaseUrl(); }
     probeEndpoint(url, options) { return this.transport.probeEndpoint(url, options); }
 
+    // IAIService.configure — applies baseUrl and/or generation defaults in one call.
+    async configure({ baseUrl, params } = {}) {
+        if (typeof baseUrl === 'string' && baseUrl.length > 0) {
+            this.transport.setBaseUrl(baseUrl);
+        }
+        if (params && typeof params === 'object') {
+            this.setDefaultParams(params);
+        }
+    }
+
     async generateCompletion(prompt, options = {}) {
         const model = options.model || this.model;
         if (!model) throw new Error('No model configured. Assign an active model via Admin > AI Models.');

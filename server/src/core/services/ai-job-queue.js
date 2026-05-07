@@ -1,10 +1,11 @@
 // FIFO priority queue for serializing background LLM inference. Concurrency defaults to 1 (global
 // lock). Abort-aware: aborted jobs are dropped before reaching the worker. Optionally checkpoints
-// queue metadata to a store so post-restart admin views can report the last known queue depth.
+// queue metadata via IInfrastructureRepository.saveCheckpoint so post-restart admin views can
+// report the last known queue depth.
 export class AIJobQueue {
-    constructor({ concurrency = 1, checkpointStore = null, logger } = {}) {
+    constructor({ concurrency = 1, infrastructureRepository = null, logger } = {}) {
         this.concurrency = Math.max(1, concurrency);
-        this.checkpointStore = checkpointStore;
+        this.infrastructureRepository = infrastructureRepository;
         this.logger = logger || console;
         this.running = 0;
         this.pending = [];
@@ -50,7 +51,7 @@ export class AIJobQueue {
     }
 
     _checkpoint() {
-        if (!this.checkpointStore) return;
+        if (!this.infrastructureRepository) return;
         const payload = {
             running: this.running,
             pending: this.pending.map((j) => ({
@@ -60,7 +61,7 @@ export class AIJobQueue {
                 enqueuedAt: j.enqueuedAt,
             })),
         };
-        Promise.resolve(this.checkpointStore.save(payload)).catch((err) =>
+        Promise.resolve(this.infrastructureRepository.saveCheckpoint(payload)).catch((err) =>
             this.logger.warn(`[AIJobQueue] checkpoint save failed: ${err.message}`)
         );
     }

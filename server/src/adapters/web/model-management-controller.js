@@ -1,11 +1,10 @@
-// HTTP adapter for AI model lifecycle operations.
+// HTTP adapter for AI model lifecycle operations. Routes through the cohesive aiService
+// adapter for all model lifecycle calls (pull/remove/status); modelManager is not injected.
 export default class ModelManagementController {
-    constructor({ aiService, modelManager, modelManagementService, ollamaEndpointService, llmParamsService }) {
+    constructor({ aiService, modelManagementService, ollamaEndpointService, llmParamsService }) {
         if (!aiService) throw new Error('ModelManagementController requires aiService');
-        if (!modelManager) throw new Error('ModelManagementController requires modelManager');
         if (!modelManagementService) throw new Error('ModelManagementController requires modelManagementService');
         this.aiService = aiService;
-        this.modelManager = modelManager;
         this.modelManagementService = modelManagementService;
         this.ollamaEndpointService = ollamaEndpointService || null;
         this.llmParamsService = llmParamsService || null;
@@ -52,7 +51,7 @@ export default class ModelManagementController {
             if (!model) return res.status(400).json({ error: 'model is required' });
 
             // Pull runs asynchronously; clients observe progress via /pull-progress polling.
-            this.modelManager.pullModelWithProgress(model).catch((error) => {
+            this.aiService.pullModel(model).catch((error) => {
                 console.error('[ModelManagementController] PullModel Error:', error.message);
             });
 
@@ -74,7 +73,7 @@ export default class ModelManagementController {
                 });
             }
 
-            await this.modelManager.removeModel(model);
+            await this.aiService.removeModel(model);
             return res.json({ status: 'removed', model });
         } catch (error) {
             console.error('[ModelManagementController] RemoveModel Error:', error.message);
@@ -85,8 +84,11 @@ export default class ModelManagementController {
     async getPullProgress(req, res) {
         try {
             const model = req.query.model;
-            const progress = await this.modelManager.getPullProgress(model);
-            return res.json({ progress });
+            const { progress } = await this.aiService.listModels();
+            const result = model
+                ? progress?.[model] || { model, status: 'idle', completed: null, total: null, percent: 0 }
+                : progress || {};
+            return res.json({ progress: result });
         } catch (error) {
             console.error('[ModelManagementController] PullProgress Error:', error.message);
             return res.status(500).json({ error: 'Failed to load pull progress' });
@@ -101,7 +103,7 @@ export default class ModelManagementController {
         if (!this.ollamaEndpointService) {
             return res.status(501).json({ error: 'Ollama endpoint service not configured' });
         }
-        return res.json(this.ollamaEndpointService.getEndpoint());
+        return res.json(await this.ollamaEndpointService.getEndpoint());
     }
 
     async setOllamaEndpoint(req, res) {

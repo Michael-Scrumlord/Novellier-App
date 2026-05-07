@@ -11,7 +11,8 @@ import UserController from '../adapters/web/user-controller.js';
 import StoryController from '../adapters/web/story-controller.js';
 import MongoStoryRepository from '../adapters/persistence/mongo-story-repo.js';
 import MongoConversationRepository from '../adapters/persistence/mongo-conversation-repo.js';
-import MongoRuntimeModelConfigRepository from '../adapters/persistence/mongo-runtime-model-config-repo.js';
+import MongoSettingsStore from '../adapters/persistence/mongo-settings-store.js';
+import MongoInfrastructureRepository from '../adapters/persistence/mongo-infrastructure-repository.js';
 import MonitoringController from '../adapters/web/monitoring-controller.js';
 import { StoryService } from '../core/services/story-service.js';
 import { OllamaModelCatalogService } from '../core/services/ollama-model-catalog-service.js';
@@ -37,6 +38,7 @@ import ChromaVectorRepository from '../adapters/persistence/chroma-vector-repo.j
 import { OllamaLibraryAdapter } from '../adapters/ai/ollama-library-adapter.js';
 import { DockerMonitoringAdapter } from '../adapters/monitoring/docker-monitoring-adapter.js';
 import { MongoMonitoringAdapter } from '../adapters/monitoring/mongo-monitoring-adapter.js';
+import { InfrastructureMonitor } from '../adapters/monitoring/infrastructure-monitor.js';
 
 import MongoPullProgressStore from '../adapters/coordination/mongo-pull-progress-store.js';
 import MongoJobQueueCheckpointStore from '../adapters/coordination/mongo-job-queue-checkpoint-store.js';
@@ -71,14 +73,24 @@ export const buildDependencies = () => {
         collectionName: process.env.MONGO_COLLECTION || 'stories',
     });
     const userRepository = new MongoUserRepository({ db });
-    const conversationRepository = new MongoConversationRepository({
+    const conversationStore = new MongoConversationRepository({
         db,
         collectionName: process.env.MONGO_CONVERSATION_COLLECTION || 'ai_conversations',
     });
-    const runtimeModelConfigRepository = new MongoRuntimeModelConfigRepository({
+    const settingsStore = new MongoSettingsStore({
         db,
         collectionName: process.env.MONGO_RUNTIME_MODEL_CONFIG_COLLECTION || 'app_config',
     });
+    const checkpointStore = new MongoJobQueueCheckpointStore({
+        db,
+        collectionName: process.env.MONGO_JOB_QUEUE_COLLECTION || 'job_queue_checkpoints',
+    });
+    const infrastructureRepository = new MongoInfrastructureRepository({
+        checkpointStore,
+        conversationStore,
+        settingsStore,
+    });
+
     const vectorRepository = new ChromaVectorRepository({
         baseUrl: process.env.CHROMA_URL || 'http://chromadb:8000',
         collectionName: process.env.CHROMA_COLLECTION || 'project_store',
@@ -92,16 +104,21 @@ export const buildDependencies = () => {
         db,
         collectionName: process.env.MONGO_PULL_PROGRESS_COLLECTION || 'pull_progress',
     });
-    const jobQueueCheckpointStore = new MongoJobQueueCheckpointStore({
-        db,
-        collectionName: process.env.MONGO_JOB_QUEUE_COLLECTION || 'job_queue_checkpoints',
-    });
     const streamingSemaphore = new StreamingSemaphore({
         concurrency: Number(process.env.AI_STREAM_CONCURRENCY) || 2,
     });
 
-    // AI adapter
-    const localAdapter = new LocalLLMAdapter({
+    // Monitoring composite — owned by the LLM adapter so getTransportMetadata can return
+    // container/volume/db health from a single call.
+    const dockerMonitor = new DockerMonitoringAdapter({
+        projectName: process.env.COMPOSE_PROJECT_NAME || 'novellier-app',
+    });
+    const mongoMonitor = new MongoMonitoringAdapter({ db });
+    const infrastructureMonitor = new InfrastructureMonitor({ dockerMonitor, mongoMonitor });
+
+    // Cohesive AI adapter — implements IAIService and exposes adapter-level extras
+    // (pullModel, removeModel) for admin lifecycle controllers.
+    const aiService = new LocalLLMAdapter({
         baseUrl: ollamaUrl,
         model: runtimeModels.suggestion,
         temperature: Number(process.env.LLM_TEMPERATURE) || LLM_SOFT_DEFAULTS.temperature,
@@ -109,6 +126,8 @@ export const buildDependencies = () => {
         hardwareOptions: llmHardwareOptions,
         pullProgressStore,
         streamingSemaphore,
+        infrastructureMonitor,
+        vectorRepository,
     });
 
     // Application services
@@ -118,21 +137,17 @@ export const buildDependencies = () => {
         maxSourceChars: Number(process.env.SUMMARY_MAX_SOURCE_CHARS) || 9000,
     };
 
-    // One LLM completion runs at a time in the background. Streaming foreground prompts
-    // bypass this queue and call generateStreamingCompletion directly.
     const aiJobQueue = new AIJobQueue({
         concurrency: Number(process.env.AI_JOB_QUEUE_CONCURRENCY) || 1,
-        checkpointStore: jobQueueCheckpointStore,
+        infrastructureRepository,
     });
 
-    // Embeddings are lightweight so small parallelism lets background indexing finish quickly
-    // without monopolizing the model host.
     const embeddingThrottle = new ConcurrencyThrottle({
         concurrency: Number(process.env.EMBEDDING_THROTTLE_CONCURRENCY) || 2,
     });
 
     const summarizationService = new StorySummarizationService({
-        aiService: localAdapter.aiService,
+        aiService,
         runtimeModels,
         summaryConfig,
         jobQueue: aiJobQueue,
@@ -146,15 +161,13 @@ export const buildDependencies = () => {
         indexingService,
     });
 
-    // YouTrack demo — registry lets the suggestion service pick a strategy per request.
-    // Also, make sure to point out the Strategy pattern implementation! It's extra but a cool demonstration of effort. 
     const strategies = {
         novel: new NovelPromptStrategy(),
-        youtrack: new YouTrackPromptStrategy(), // YouTrack demo
+        youtrack: new YouTrackPromptStrategy(),
     };
 
     const aiSuggestionService = new AISuggestionService({
-        aiService: localAdapter.aiService,
+        aiService,
         vectorRepository,
         storyFactsGateway: storyService,
         strategies,
@@ -172,41 +185,37 @@ export const buildDependencies = () => {
     });
 
     const modelCatalogService = new OllamaModelCatalogService({
-        modelManager: localAdapter.modelManager,
+        aiService,
         ollamaLibraryAdapter,
         runtimeModels,
     });
 
     const modelManagementService = new AIModelManagementService({
-        modelManager: localAdapter.modelManager,
+        aiService,
         runtimeModels,
-        runtimeModelConfigPort: runtimeModelConfigRepository,
+        infrastructureRepository,
     });
 
     const ollamaEndpointService = new OllamaEndpointService({
-        runtimeConfigRepository: runtimeModelConfigRepository,
-        llmAdapter: localAdapter,
+        aiService,
         vectorRepository,
+        infrastructureRepository,
         envFallbackUrl: ollamaUrl,
     });
 
     const llmParamsService = new LlmParamsService({
-        repo: runtimeModelConfigRepository,
-        llmAdapter: localAdapter,
+        infrastructureRepository,
+        aiService,
         hardwareDefaults: llmHardwareOptions,
         softDefaults: LLM_SOFT_DEFAULTS,
     });
 
     const suggestionService = new SuggestionUseCase({
         suggestionService: aiSuggestionService,
-        conversationRepository,
+        infrastructureRepository,
     });
 
-    const dockerMonitor = new DockerMonitoringAdapter({
-        projectName: process.env.COMPOSE_PROJECT_NAME || 'novellier-app',
-    });
-    const mongoMonitor = new MongoMonitoringAdapter({ db });
-    const monitoringService = new MonitoringService({ dockerMonitor, mongoMonitor });
+    const monitoringService = new MonitoringService({ aiService });
 
     const userService = new UserService({ userRepository });
 
@@ -217,8 +226,7 @@ export const buildDependencies = () => {
     const monitoringController = new MonitoringController({ monitoringService });
     const suggestionController = new SuggestionController({ suggestionService, runtimeModels });
     const modelManagementController = new ModelManagementController({
-        aiService: localAdapter.aiService,
-        modelManager: localAdapter.modelManager,
+        aiService,
         modelManagementService,
         ollamaEndpointService,
         llmParamsService,
@@ -227,9 +235,8 @@ export const buildDependencies = () => {
         modelCatalogService,
         modelManagementService,
     });
-    const conversationController = new ConversationController({ conversationRepository });
+    const conversationController = new ConversationController({ conversationRepository: conversationStore });
 
-    // Auth middleware is created once so all routes share the same JWT configuration.
     const authMiddleware = createAuthMiddleware({ jwtSecret });
 
     return {
@@ -244,11 +251,12 @@ export const buildDependencies = () => {
         modelManagementController,
         modelCatalogController,
         conversationController,
-        // Exposed for seeding and health checks
-        aiService: localAdapter.aiService,
-        modelManager: localAdapter.modelManager,
+        // Exposed for seeding and health checks. modelManager is no longer leaked through
+        // the bundle — admin lifecycle goes through aiService directly.
+        aiService,
         pullProgressStore,
-        jobQueueCheckpointStore,
+        infrastructureRepository,
+        checkpointStore,
         streamingSemaphore,
         aiJobQueue,
         modelCatalogService,

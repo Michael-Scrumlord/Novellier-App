@@ -1,3 +1,4 @@
+const ENDPOINT_SETTING_KEY = 'ollama_endpoint';
 const DEFAULT_FALLBACK_URL = 'http://ollama:11434';
 
 function normalizeUrl(value) {
@@ -14,12 +15,12 @@ function normalizeUrl(value) {
 }
 
 export class OllamaEndpointService {
-    constructor({ runtimeConfigRepository, llmAdapter, vectorRepository, envFallbackUrl, logger } = {}) {
-        if (!runtimeConfigRepository) throw new Error('OllamaEndpointService requires runtimeConfigRepository');
-        if (!llmAdapter) throw new Error('OllamaEndpointService requires llmAdapter');
-        this.repo = runtimeConfigRepository;
-        this.llmAdapter = llmAdapter;
+    constructor({ aiService, vectorRepository, infrastructureRepository, envFallbackUrl, logger } = {}) {
+        if (!aiService) throw new Error('OllamaEndpointService requires aiService');
+        if (!infrastructureRepository) throw new Error('OllamaEndpointService requires infrastructureRepository');
+        this.aiService = aiService;
         this.vectorRepository = vectorRepository || null;
+        this.infrastructureRepository = infrastructureRepository;
         this.envFallbackUrl = envFallbackUrl || DEFAULT_FALLBACK_URL;
         this.logger = logger || console;
         this.currentUrl = this.envFallbackUrl;
@@ -28,39 +29,32 @@ export class OllamaEndpointService {
 
     async hydrate() {
         try {
-            const stored = await this.repo.getOllamaEndpoint();
+            const stored = await this.infrastructureRepository.getSetting(ENDPOINT_SETTING_KEY);
             const persistedUrl = normalizeUrl(stored?.url);
             const url = persistedUrl || this.envFallbackUrl;
             this.source = persistedUrl ? 'db' : 'env';
-            this._applyToAdapters(url, { phase: 'hydrate' });
+            await this._applyToAdapters(url);
             this.currentUrl = url;
             this.logger.log(`[OllamaEndpoint] Hydrated URL: ${url} (source: ${this.source}, envFallback: ${this.envFallbackUrl})`);
         } catch (error) {
             this.logger.warn(`[OllamaEndpoint] Hydration failed, using env default: ${error.message}`);
-            this._applyToAdapters(this.envFallbackUrl, { phase: 'hydrate_fallback' });
+            await this._applyToAdapters(this.envFallbackUrl);
             this.currentUrl = this.envFallbackUrl;
             this.source = 'env';
         }
     }
 
-    /**
-     * Returns the current state with observed adapter URLs so the UI can detect drift.
-     */
-    getEndpoint() {
-        const adapterUrl = this.llmAdapter.getBaseUrl ? this.llmAdapter.getBaseUrl() : null;
-        const chromaAdapterUrl = this.vectorRepository?.getOllamaUrl
-            ? this.vectorRepository.getOllamaUrl()
-            : null;
-        const inSync = adapterUrl === this.currentUrl && (chromaAdapterUrl === null || chromaAdapterUrl === this.currentUrl);
+    async getEndpoint() {
+        const meta = await this.aiService.getTransportMetadata();
+        const inSync =
+            meta.observed?.llmAdapter === this.currentUrl &&
+            (meta.observed?.chromaAdapter == null || meta.observed.chromaAdapter === this.currentUrl);
 
         return {
             url: this.currentUrl,
             fallbackUrl: this.envFallbackUrl,
             source: this.source,
-            observed: {
-                llmAdapter: adapterUrl,
-                chromaAdapter: chromaAdapterUrl,
-            },
+            observed: meta.observed,
             inSync,
         };
     }
@@ -69,24 +63,17 @@ export class OllamaEndpointService {
         const url = normalizeUrl(rawUrl);
         if (!url) throw new Error('Invalid URL. Must be a valid http:// or https:// URL.');
 
-        this.logger.log(`[OllamaEndpoint] setEndpoint begin: "${rawUrl}" -> "${url}"`);
-
-        await this.repo.saveOllamaEndpoint({ url });
-        this._applyToAdapters(url, { phase: 'set' });
+        await this.infrastructureRepository.saveSetting(ENDPOINT_SETTING_KEY, { url });
+        await this._applyToAdapters(url);
         this.currentUrl = url;
         this.source = 'db';
 
-        const state = this.getEndpoint();
-        if (!state.inSync) {
-            this.logger.warn(`[OllamaEndpoint] Adapter drift detected after save: ${JSON.stringify(state)}`);
-        }
-        this.logger.log(`[OllamaEndpoint] setEndpoint complete. observed=${JSON.stringify(state.observed)}`);
-        return state;
+        return this.getEndpoint();
     }
 
     async resetToEnvDefault() {
-        await this.repo.saveOllamaEndpoint({ url: null });
-        this._applyToAdapters(this.envFallbackUrl, { phase: 'reset' });
+        await this.infrastructureRepository.saveSetting(ENDPOINT_SETTING_KEY, { url: null });
+        await this._applyToAdapters(this.envFallbackUrl);
         this.currentUrl = this.envFallbackUrl;
         this.source = 'env';
         return this.getEndpoint();
@@ -95,24 +82,13 @@ export class OllamaEndpointService {
     async testConnection(rawUrl) {
         const url = rawUrl ? normalizeUrl(rawUrl) : this.currentUrl;
         if (!url) throw new Error('Invalid URL');
-        return this.llmAdapter.probeEndpoint(url, { timeoutMs: 5000 });
+        return this.aiService.probeEndpoint(url, { timeoutMs: 5000 });
     }
 
-    _applyToAdapters(url, { phase } = {}) {
-        const beforeLlm = this.llmAdapter.getBaseUrl ? this.llmAdapter.getBaseUrl() : null;
-        this.llmAdapter.setBaseUrl(url);
-        const afterLlm = this.llmAdapter.getBaseUrl ? this.llmAdapter.getBaseUrl() : null;
-
-        let beforeChroma = null;
-        let afterChroma = null;
-        if (this.vectorRepository?.setOllamaUrl) {
-            beforeChroma = this.vectorRepository.getOllamaUrl ? this.vectorRepository.getOllamaUrl() : null;
-            this.vectorRepository.setOllamaUrl(url);
-            afterChroma = this.vectorRepository.getOllamaUrl ? this.vectorRepository.getOllamaUrl() : null;
+    async _applyToAdapters(url) {
+        await this.aiService.configure({ baseUrl: url });
+        if (this.vectorRepository?.updateTransport) {
+            this.vectorRepository.updateTransport({ baseUrl: url });
         }
-
-        this.logger.log(
-            `[OllamaEndpoint] _applyToAdapters[${phase || 'manual'}] llm=${beforeLlm}→${afterLlm} chroma=${beforeChroma}→${afterChroma}`
-        );
     }
 }
