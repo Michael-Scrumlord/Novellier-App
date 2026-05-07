@@ -59,28 +59,29 @@ export default class ModelCatalogController {
 
     async getAdminModelStatus(_req, res) {
         try {
-            const catalog = await this.modelManagementService.getModelCatalog();
+            const [catalog, { progress }] = await Promise.all([
+                this.modelManagementService.getModelCatalog(),
+                this.modelManagementService.getModelStatus(),
+            ]);
             const activeModels = this.modelManagementService.getActiveModels();
 
-            const models = await Promise.all(
-                catalog.map(async (entry) => {
-                    const pull = (await this.modelManagementService.getPullProgress(entry.model)) || null;
-                    return {
-                        model: entry.model,
-                        displayName: entry.displayName,
-                        downloaded: entry.downloaded,
-                        sizeBytes: entry.sizeBytes,
-                        recommendedConstrained: entry.recommendedConstrained,
-                        pullStatus: pull?.status || 'idle',
-                        completedBytes: pull?.completed || null,
-                        totalBytes: pull?.total || null,
-                        percent: pull?.percent || 0,
-                        isActiveSuggestion: activeModels.suggestion === entry.model,
-                        isActiveSummary: activeModels.summary === entry.model,
-                        isActiveEmbedding: activeModels.embedding === entry.model,
-                    };
-                })
-            );
+            const models = catalog.map((entry) => {
+                const pull = progress?.[entry.model] || null;
+                return {
+                    model: entry.model,
+                    displayName: entry.displayName,
+                    downloaded: entry.downloaded,
+                    sizeBytes: entry.sizeBytes,
+                    recommendedConstrained: entry.recommendedConstrained,
+                    pullStatus: pull?.status || 'idle',
+                    completedBytes: pull?.completed || null,
+                    totalBytes: pull?.total || null,
+                    percent: pull?.percent || 0,
+                    isActiveSuggestion: activeModels.suggestion === entry.model,
+                    isActiveSummary: activeModels.summary === entry.model,
+                    isActiveEmbedding: activeModels.embedding === entry.model,
+                };
+            });
 
             return res.json({ active: activeModels, models });
         } catch (error) {

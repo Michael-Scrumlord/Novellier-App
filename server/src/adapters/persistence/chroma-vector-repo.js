@@ -1,7 +1,10 @@
 import { richTextToPlainText } from '../../core/domain/RichText.js';
 import { formatRetrievalContext } from '../../core/domain/RetrievalContextFormatter.js';
+import { IVectorRepository } from '../../core/ports/IVectorRepository.js';
 
-export default class ChromaVectorRepository {
+const MAX_EMBED_BATCH = 64;
+
+export default class ChromaVectorRepository extends IVectorRepository {
     constructor({
         baseUrl = 'http://chromadb:8000',
         collectionName = 'project_store',
@@ -10,6 +13,7 @@ export default class ChromaVectorRepository {
         ragConfig,
         runtimeModels,
     } = {}) {
+        super();
         this.baseUrl = baseUrl;
         this.collectionName = collectionName;
         this.ollamaUrl = ollamaUrl;
@@ -19,9 +23,11 @@ export default class ChromaVectorRepository {
         this.runtimeModels = runtimeModels || null;
     }
 
-    setOllamaUrl(url) {
-        const trimmed = typeof url === 'string' ? url.trim() : '';
-        if (!trimmed) throw new Error('Ollama URL cannot be empty');
+    // IVectorRepository.updateTransport — accepts { baseUrl } pointing at the embedding host
+    // (Ollama). Used by OllamaEndpointService when the operator changes the transport URL.
+    updateTransport({ baseUrl } = {}) {
+        const trimmed = typeof baseUrl === 'string' ? baseUrl.trim() : '';
+        if (!trimmed) throw new Error('Embedding host URL cannot be empty');
         this.ollamaUrl = trimmed.replace(/\/+$/, '');
     }
 
@@ -71,10 +77,10 @@ export default class ChromaVectorRepository {
             const collectionId = await this.getCollectionId();
             const collectionUrl = `${this.baseUrl}/api/v1/collections/${collectionId}`;
 
-            const normalizedQuery = richTextToPlainText(text);
+            const normalizedQuery = options.alreadyNormalized ? text : richTextToPlainText(text);
             if (!normalizedQuery) return '';
 
-            const embedding = await this.generateEmbedding(normalizedQuery);
+            const embedding = await this.generateEmbedding(normalizedQuery, { alreadyNormalized: true });
             const nResults = options.limit || this.ragConfig.contextChunks;
 
             const queryPayload = {
@@ -116,39 +122,70 @@ export default class ChromaVectorRepository {
         if (text.length <= maxChars) return text;
         return text.slice(0, maxChars) + '...';
     }
-    async generateEmbedding(text) {
-        const normalizedText = richTextToPlainText(text);
+
+    async generateEmbedding(text, { alreadyNormalized = false } = {}) {
+        const normalizedText = alreadyNormalized ? text : richTextToPlainText(text);
         if (!normalizedText) {
             throw new Error('No text available for embedding');
         }
 
-        const data = await this._post(
-            `${this.ollamaUrl}/api/embeddings`,
-            {
-                model: this.runtimeModels?.embedding || this.embeddingModel,
-                prompt: normalizedText,
-            },
-            { signal: AbortSignal.timeout(30000) }
-        );
-
-        if (!data?.embedding) {
+        const [embedding] = await this._generateEmbeddingsBatch([normalizedText]);
+        if (!embedding) {
             throw new Error('No embedding returned from Ollama');
         }
-
-        return data.embedding;
+        return embedding;
     }
 
-    async addContext(id, text, metadata = {}) {
+    // Batch embedding via Ollama /api/embed. Inputs MUST already be plain text.
+    // Splits into MAX_EMBED_BATCH-sized requests dispatched in parallel to avoid
+    // single oversized payloads while preserving result ordering.
+    async _generateEmbeddingsBatch(plainTexts, { signal } = {}) {
+        if (!Array.isArray(plainTexts) || plainTexts.length === 0) return [];
+
+        const groups = [];
+        for (let i = 0; i < plainTexts.length; i += MAX_EMBED_BATCH) {
+            groups.push(plainTexts.slice(i, i + MAX_EMBED_BATCH));
+        }
+
+        const results = await Promise.all(
+            groups.map((group) =>
+                this._post(
+                    `${this.ollamaUrl}/api/embed`,
+                    {
+                        model: this.runtimeModels?.embedding || this.embeddingModel,
+                        input: group,
+                    },
+                    { signal: signal || AbortSignal.timeout(60000) }
+                )
+            )
+        );
+
+        const flat = [];
+        results.forEach((data, groupIdx) => {
+            const expected = groups[groupIdx].length;
+            const embeddings = Array.isArray(data?.embeddings) ? data.embeddings : null;
+            if (!embeddings || embeddings.length !== expected) {
+                throw new Error(
+                    `Ollama /api/embed returned ${embeddings?.length ?? 0} embeddings for ${expected} inputs`
+                );
+            }
+            flat.push(...embeddings);
+        });
+
+        return flat;
+    }
+
+    async addContext(id, text, metadata = {}, { alreadyNormalized = false } = {}) {
         try {
             const collectionId = await this.getCollectionId();
             const collectionUrl = `${this.baseUrl}/api/v1/collections/${collectionId}`;
-            const normalizedText = richTextToPlainText(text);
+            const normalizedText = alreadyNormalized ? text : richTextToPlainText(text);
 
             if (!normalizedText) {
                 return false;
             }
 
-            const embedding = await this.generateEmbedding(normalizedText);
+            const embedding = await this.generateEmbedding(normalizedText, { alreadyNormalized: true });
 
             await this._post(`${collectionUrl}/upsert`, {
                 ids: [id],
@@ -169,6 +206,48 @@ export default class ChromaVectorRepository {
             return false;
         }
     }
+
+    // Batch upsert. items: [{ id, text, metadata, alreadyNormalized? }].
+    // Issues a single batched embedding call (chunked internally to MAX_EMBED_BATCH)
+    // and a single Chroma upsert. Returns true if any items were upserted.
+    async addContextBatch(items) {
+        try {
+            if (!Array.isArray(items) || items.length === 0) return false;
+
+            const prepared = items
+                .map((item) => {
+                    const text = item?.alreadyNormalized
+                        ? item.text
+                        : richTextToPlainText(item?.text || '');
+                    return { id: item?.id, text, metadata: item?.metadata || {} };
+                })
+                .filter((p) => p.id && p.text);
+
+            if (prepared.length === 0) return false;
+
+            const collectionId = await this.getCollectionId();
+            const collectionUrl = `${this.baseUrl}/api/v1/collections/${collectionId}`;
+
+            const embeddings = await this._generateEmbeddingsBatch(prepared.map((p) => p.text));
+
+            await this._post(`${collectionUrl}/upsert`, {
+                ids: prepared.map((p) => p.id),
+                documents: prepared.map((p) => p.text),
+                embeddings,
+                metadatas: prepared.map((p) => ({
+                    storyId: p.metadata.storyId || 'unknown',
+                    timestamp: p.metadata.timestamp || new Date().toISOString(),
+                    ...p.metadata,
+                })),
+            });
+
+            return true;
+        } catch (error) {
+            console.error('[RAG] ChromaDB batch add error:', error.message);
+            return false;
+        }
+    }
+
     async deleteStoryContext(storyId) {
         try {
             const collectionId = await this.getCollectionId();

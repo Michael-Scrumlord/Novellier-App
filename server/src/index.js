@@ -22,14 +22,14 @@ async function start() {
         await deps.llmParamsService.hydrate();
     }
 
-    if (deps.jobQueueCheckpointStore?.load) {
-        const previous = await deps.jobQueueCheckpointStore.load();
+    if (deps.checkpointStore?.load) {
+        const previous = await deps.checkpointStore.load();
         if (previous && (previous.running > 0 || previous.pending.length > 0)) {
             console.warn(
                 `[AIJobQueue] Recovered checkpoint from prior process: running=${previous.running}, pending=${previous.pending.length}. Closures lost; queue starting empty.`
             );
         }
-        await deps.jobQueueCheckpointStore.save({ running: 0, pending: [] });
+        await deps.infrastructureRepository.saveCheckpoint({ running: 0, pending: [] });
     }
 
     if (deps.modelManagementService?.hydrateRuntimeModels) {
@@ -49,7 +49,7 @@ async function start() {
 
         if (needsSuggestion || needsSummary) {
             try {
-                const installed = await deps.modelManager.listInstalledModels();
+                const { installed } = await deps.aiService.listModels();
                 const generativeNames = installed
                     .map((m) => m.name)
                     .filter(Boolean)
@@ -69,7 +69,7 @@ async function start() {
                 } else if (process.env.LLM_MODEL) {
                     // No generative models installed — pull in the background so the app self-heals on first boot.
                     console.log('[ModelConfig] Pulling default model in background:', process.env.LLM_MODEL);
-                    deps.modelManager.pullModelWithProgress(process.env.LLM_MODEL).catch((err) => {
+                    deps.aiService.pullModel(process.env.LLM_MODEL).catch((err) => {
                         console.warn('[ModelConfig] Background pull failed:', err.message);
                     });
                 } else {

@@ -1,9 +1,11 @@
 import { normalizeModelName } from '../domain/ModelNameUtils.js';
 
-// Provides core services for the Ollama model catalog.
+// Provides core services for the Ollama model catalog. Reads installed models through the
+// IAIService port; the library descriptor source is still injected as ollamaLibraryAdapter.
 export class OllamaModelCatalogService {
-    constructor({ modelManager, ollamaLibraryAdapter, runtimeModels } = {}) {
-        this.modelManager = modelManager || null;
+    constructor({ aiService, ollamaLibraryAdapter, runtimeModels } = {}) {
+        if (!aiService) throw new Error('OllamaModelCatalogService requires aiService');
+        this.aiService = aiService;
         this.ollamaLibraryAdapter = ollamaLibraryAdapter || null;
         this.runtimeModels = runtimeModels || { suggestion: null, summary: null, embedding: null };
     }
@@ -96,9 +98,7 @@ export class OllamaModelCatalogService {
     }
 
     async _getInstalledModelMap() {
-        const models = this.modelManager
-            ? await this.modelManager.listInstalledModels()
-            : [];
+        const { installed: models = [] } = await this.aiService.listModels();
 
         const installed = new Map();
         for (const entry of models) {
@@ -168,7 +168,6 @@ export class OllamaModelCatalogService {
         );
     }
 
-    // Simple RAM estimation
     _estimateRamFromSizeTag(sizeTag) {
         const match = String(sizeTag || '')
             .trim()

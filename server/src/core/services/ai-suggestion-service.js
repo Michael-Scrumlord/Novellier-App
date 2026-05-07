@@ -58,11 +58,35 @@ export class AISuggestionService extends ISuggestionService {
     async getSuggestion(storyText, options = {}) {
         const clippedStory = normalizeAndClipStoryText(storyText, this.config.maxActiveChars);
         const isToolMode = options.mode === TOOL_MODE;
+        const targetModel = options.model || this.runtimeModels?.suggestion;
 
-        const [ragContext, storyFacts] = await Promise.all([
+        // Signal "thinking" before any I/O so the SSE client renders a state immediately
+        // rather than waiting on the embedding + Chroma round-trips.
+        options.onProgress?.({ kind: PROGRESS.RAG_SEARCHING });
+
+        // Tool-support probe runs in parallel with RAG/facts loads only when needed.
+        const ensureToolModel = isToolMode
+            ? this.aiService.ensureModelAvailable(targetModel).catch((error) => {
+                this.logger.warn(`[AISuggestionService] Tool support check failed: ${error.message}`);
+                return null;
+            })
+            : Promise.resolve(null);
+
+        const [ragContext, storyFacts, modelStatus] = await Promise.all([
             this._loadRagContext(clippedStory, options.storyId),
             this._loadStoryFacts(options.storyId, options._meta),
+            ensureToolModel,
         ]);
+
+        let aiToolsSpec = null;
+        if (isToolMode) {
+            const supportsTools = modelStatus?.supportsTools || false;
+            if (!supportsTools) {
+                options.onProgress?.({ kind: PROGRESS.UNSUPPORTED_MODEL });
+                return options.onChunk ? undefined : TOOL_ERROR_RESPONSE;
+            }
+            aiToolsSpec = CONTINUITY_TOOL_SPECS;
+        }
 
         // YouTrack demo — domain field selects the strategy; defaults to novel.
         const strategy = this.strategies[options.domain] ?? this.strategies.novel;
@@ -77,27 +101,12 @@ export class AISuggestionService extends ISuggestionService {
         });
         options.onPromptBuilt?.(prompt);
 
-        const targetModel = options.model || this.runtimeModels?.suggestion;
         const aiOptions = {
             maxTokens: options.maxTokens ?? this.config.maxTokens,
             model: targetModel,
             abortSignal: options.abortSignal,
         };
-
-        if (isToolMode) {
-            let supportsTools = false;
-            try {
-                const status = await this.aiService.ensureModelAvailable(targetModel);
-                supportsTools = status?.supportsTools || false;
-            } catch (error) {
-                this.logger.warn(`[AISuggestionService] Tool support check failed: ${error.message}`);
-            }
-            if (!supportsTools) {
-                options.onProgress?.({ kind: PROGRESS.UNSUPPORTED_MODEL });
-                return options.onChunk ? undefined : TOOL_ERROR_RESPONSE;
-            }
-            aiOptions.tools = CONTINUITY_TOOL_SPECS;
-        }
+        if (aiToolsSpec) aiOptions.tools = aiToolsSpec;
 
         const result = await (options.onChunk
             ? this.aiService.generateStreamingCompletion(prompt, aiOptions, options.onChunk)
@@ -113,7 +122,11 @@ export class AISuggestionService extends ISuggestionService {
     async _loadRagContext(clippedStory, storyId) {
         if (!storyId) return '';
         try {
-            return await this.vectorRepository.searchContext(clippedStory, { storyId, limit: null });
+            return await this.vectorRepository.searchContext(clippedStory, {
+                storyId,
+                limit: null,
+                alreadyNormalized: true,
+            });
         } catch (error) {
             this.logger.warn(`[AISuggestionService] RAG search failed: ${error.message}`);
             return '';

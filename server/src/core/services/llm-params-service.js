@@ -1,15 +1,16 @@
 // Manages persisted LLM generation parameters (temperature, num_predict, num_ctx, etc.).
-// On hydrate, stored overrides are applied to the live adapter so changes take effect immediately
-// without a server restart.
+// Reads/writes pass through IInfrastructureRepository, and changes are pushed to the live
+// IAIService via configure({ params }) so they take effect without a server restart.
 
 const PARAM_KEYS = ['temperature', 'num_predict', 'num_ctx', 'num_gpu', 'top_k', 'top_p', 'repeat_penalty'];
+const PARAMS_SETTING_KEY = 'llm_model_params';
 
 export class LlmParamsService {
-    constructor({ repo, llmAdapter, hardwareDefaults, softDefaults } = {}) {
-        if (!repo) throw new Error('LlmParamsService requires repo');
-        if (!llmAdapter) throw new Error('LlmParamsService requires llmAdapter');
-        this.repo = repo;
-        this.llmAdapter = llmAdapter;
+    constructor({ infrastructureRepository, aiService, hardwareDefaults, softDefaults } = {}) {
+        if (!infrastructureRepository) throw new Error('LlmParamsService requires infrastructureRepository');
+        if (!aiService) throw new Error('LlmParamsService requires aiService');
+        this.infrastructureRepository = infrastructureRepository;
+        this.aiService = aiService;
         this.hardwareDefaults = hardwareDefaults || {};
         this.softDefaults = softDefaults || {};
         this.storedParams = null;
@@ -17,8 +18,8 @@ export class LlmParamsService {
 
     async hydrate() {
         try {
-            this.storedParams = await this.repo.getLlmModelParams();
-            this._apply();
+            this.storedParams = await this.infrastructureRepository.getSetting(PARAMS_SETTING_KEY);
+            await this._apply();
         } catch (error) {
             console.warn('[LlmParams] Hydration failed, using compiled defaults:', error.message);
         }
@@ -37,16 +38,16 @@ export class LlmParamsService {
         for (const key of PARAM_KEYS) {
             if (updates[key] != null) filtered[key] = Number(updates[key]);
         }
-        await this.repo.saveLlmModelParams(filtered);
+        await this.infrastructureRepository.saveSetting(PARAMS_SETTING_KEY, filtered);
         this.storedParams = filtered;
-        this._apply();
+        await this._apply();
         return this.getParams();
     }
 
     async resetParams() {
-        await this.repo.saveLlmModelParams(null);
+        await this.infrastructureRepository.saveSetting(PARAMS_SETTING_KEY, null);
         this.storedParams = null;
-        this._apply();
+        await this._apply();
         return this.getParams();
     }
 
@@ -76,16 +77,18 @@ export class LlmParamsService {
         };
     }
 
-    _apply() {
+    async _apply() {
         const { temperature, num_predict, num_ctx, num_gpu, top_k, top_p, repeat_penalty } = this._effective();
-        this.llmAdapter.setDefaultParams({
-            temperature,
-            numPredict: num_predict,
-            num_ctx,
-            num_gpu,
-            top_k,
-            top_p,
-            repeat_penalty,
+        await this.aiService.configure({
+            params: {
+                temperature,
+                numPredict: num_predict,
+                num_ctx,
+                num_gpu,
+                top_k,
+                top_p,
+                repeat_penalty,
+            },
         });
     }
 }

@@ -2,9 +2,8 @@ import { richTextToPlainText } from '../domain/RichText.js';
 import { chunkText } from '../domain/TextUtils.js';
 
 // App service for story vector indexing.
+// Consumes IVectorRepository (addContextBatch / searchContext / deleteStoryContext / updateTransport).
 // Responsible for chunking story sections and upserting them into the vector store, re-indexing on save, and cleaning up on deletion.
-// Extracted from StoryService to satisfy the single responsibility principle.
-
 export class StoryIndexingService {
     constructor({ vectorRepository, embeddingThrottle }) {
         this.vectorRepository = vectorRepository || null;
@@ -36,7 +35,7 @@ export class StoryIndexingService {
         }
 
         // Section chunks preserve ordering and carry beat metadata for targeted retrieval.
-        const tasks = sections
+        const items = sections
             .map((section) => ({
                 ...section,
                 plainContent: richTextToPlainText(section.content),
@@ -46,34 +45,37 @@ export class StoryIndexingService {
                 const sectionKey = section.beatKey || section.id || 'section';
                 const chunks = chunkText(section.plainContent, 1600, 200);
 
-                return chunks.map((chunkContent, chunkIndex) => () => {
+                return chunks.map((chunkContent, chunkIndex) => {
                     const sectionId = `${storyId}__${sectionKey}__c${chunkIndex}`;
                     const fullText = section.title
                         ? `${section.title}\n\n${chunkContent}`
                         : chunkContent;
 
-                    return this.vectorRepository.addContext(sectionId, fullText, {
-                        storyId,
-                        storyTitle: title,
-                        genre: genre || 'unspecified',
-                        templateId: templateId || null,
-                        sectionId: section.id,
-                        beatKey: section.beatKey,
-                        sectionTitle: section.title,
-                        sectionGuidance: section.guidance || '',
-                        chunkIndex,
-                        chunkCount: chunks.length,
-                        timestamp: new Date().toISOString(),
-                    });
+                    return {
+                        id: sectionId,
+                        text: fullText,
+                        alreadyNormalized: true,
+                        metadata: {
+                            storyId,
+                            storyTitle: title,
+                            genre: genre || 'unspecified',
+                            templateId: templateId || null,
+                            sectionId: section.id,
+                            beatKey: section.beatKey,
+                            sectionTitle: section.title,
+                            sectionGuidance: section.guidance || '',
+                            chunkIndex,
+                            chunkCount: chunks.length,
+                            timestamp: new Date().toISOString(),
+                        },
+                    };
                 });
             });
 
-        // Throttle embedding generation to protect GPU headroom without stalling indexing.
-        const throttle = this.embeddingThrottle;
-        const wrapped = throttle
-            ? tasks.map((task) => throttle.run(task))
-            : tasks.map((task) => task());
+        if (items.length === 0) return;
 
-        await Promise.allSettled(wrapped);
+        // Single batched embedding call + single Chroma upsert via the repo's
+        // addContextBatch (chunks internally to MAX_EMBED_BATCH).
+        await this.vectorRepository.addContextBatch(items);
     }
 }

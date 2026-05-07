@@ -139,59 +139,70 @@ function extractRelevantExcerpt(fact, sourceText, topN = 3) {
     return top.length > 0 ? top.join(' ') : sentences.slice(0, 2).join(' ');
 }
 
-async function batchVerifyCandidates({
+// Verify candidates globally in parallel batches. Each batch is dispatched through the
+// AI job queue so hardware concurrency limits are still respected; Promise.all only
+// determines submission order, not actual concurrency at the worker.
+async function batchVerifyCandidatesParallel({
     aiService,
     targetModel,
     jobQueue,
     candidates,
-    chapterIdx,
-    chunkIdx,
     onProgress,
     logger,
 }) {
-    const accepted = [];
+    if (candidates.length === 0) return [];
 
-    for (let batchStart = 0; batchStart < candidates.length; batchStart += BATCH_VERIFY_SIZE) {
-        const batch = candidates.slice(batchStart, batchStart + BATCH_VERIFY_SIZE);
+    const batches = [];
+    for (let start = 0; start < candidates.length; start += BATCH_VERIFY_SIZE) {
+        batches.push({ start, batch: candidates.slice(start, start + BATCH_VERIFY_SIZE) });
+    }
 
+    candidates.forEach((c, i) => {
+        onProgress?.({
+            kind: PROGRESS.POPULATE_VERIFY_START,
+            fact: c.fact,
+            index: i + 1,
+            total: candidates.length,
+        });
+    });
+
+    const batchPromises = batches.map(({ start, batch }) => {
         const batchItems = batch.map((item) => ({
             fact: item.fact,
             excerpt: extractRelevantExcerpt(item.fact, item.sourceText),
         }));
+        return runQueued(
+            jobQueue,
+            `populate_verify_b${start}`,
+            6,
+            () =>
+                aiService.generateCompletion(
+                    buildBatchVerifyPrompt(batchItems),
+                    { maxTokens: BATCH_VERIFY_MAX_TOKENS, model: targetModel }
+                )
+        )
+            .then((raw) => ({ start, batch, raw, error: null }))
+            .catch((error) => ({ start, batch, raw: null, error }));
+    });
 
-        for (let i = 0; i < batch.length; i++) {
-            onProgress?.({
-                kind: PROGRESS.POPULATE_VERIFY_START,
-                fact: batch[i].fact,
-                index: batchStart + i + 1,
-                total: candidates.length,
-            });
-        }
+    const settled = await Promise.all(batchPromises);
 
-        let verifiedSet = new Set();
-        try {
-            const raw = await runQueued(
-                jobQueue,
-                `populate_verify_ch${chapterIdx}_ck${chunkIdx}_b${batchStart}`,
-                6,
-                () =>
-                    aiService.generateCompletion(
-                        buildBatchVerifyPrompt(batchItems),
-                        { maxTokens: BATCH_VERIFY_MAX_TOKENS, model: targetModel }
-                    )
+    const accepted = [];
+    for (const { start, batch, raw, error } of settled) {
+        if (error) {
+            logger?.warn(
+                `[PopulateFacts] Batch verify failed batch@${start}: ${error.message}`
             );
+        }
+        const verifiedSet = new Set();
+        if (raw) {
             const indices = parseCompletionAsIndices(raw);
             for (const idx of indices) {
                 if (idx >= 1 && idx <= batch.length) {
                     verifiedSet.add(batch[idx - 1].fact.toLowerCase().trim());
                 }
             }
-        } catch (error) {
-            logger?.warn(
-                `[PopulateFacts] Batch verify failed ch${chapterIdx}/chunk${chunkIdx} batch@${batchStart}: ${error.message}`
-            );
         }
-
         for (let i = 0; i < batch.length; i++) {
             const key = batch[i].fact.toLowerCase().trim();
             const isAccepted = verifiedSet.has(key);
@@ -199,7 +210,7 @@ async function batchVerifyCandidates({
             onProgress?.({
                 kind: PROGRESS.POPULATE_VERIFY_COMPLETE,
                 fact: batch[i].fact,
-                index: batchStart + i + 1,
+                index: start + i + 1,
                 total: candidates.length,
                 accepted: isAccepted,
             });
@@ -220,6 +231,13 @@ function prepareChapters(sections) {
         .slice(0, MAX_CHAPTERS);
 }
 
+// Flat pipeline: build a single work list across all chapter/chunk pairs, dispatch all
+// extractions through the AI job queue in parallel (the queue enforces concurrency),
+// then run a single global verification pass after extractions settle.
+//
+// Trade-off: we lose the per-chunk soft-dedupe that the old serial pipeline fed into
+// `buildExtractPrompt` via the growing workingFacts list. The hard dedupe inside
+// `mergeValidated` and the cross-chunk seen-set below remain authoritative.
 async function thoroughChunkPipeline({
     aiService,
     targetModel,
@@ -231,92 +249,114 @@ async function thoroughChunkPipeline({
 }) {
     const workingFacts = [...existingFacts];
     const totalChapters = chapters.length;
-    let addedCount = 0;
 
+    // Build flat work list and emit chapter_start in source order.
+    const workItems = [];
+    const chapterRemaining = new Map();
     for (const chapter of chapters) {
         const chunks = chunkText(chapter.text, CHUNK_CHAR_SIZE, CHUNK_CHAR_OVERLAP);
-
+        chapterRemaining.set(chapter.index, chunks.length);
         onProgress?.({
             kind: PROGRESS.POPULATE_CHAPTER_START,
             index: chapter.index + 1,
             total: totalChapters,
             chunks: chunks.length,
         });
-
-        for (let chunkIdx = 0; chunkIdx < chunks.length; chunkIdx++) {
-            onProgress?.({
-                kind: PROGRESS.POPULATE_CHUNK_START,
+        chunks.forEach((text, chunkIdx) => {
+            workItems.push({
+                chapter,
                 chapterIndex: chapter.index + 1,
                 chunkIndex: chunkIdx + 1,
                 chunkCount: chunks.length,
+                text,
             });
-
-            // 1. Extract candidates from this chunk.
-            let candidates = [];
-            try {
-                const raw = await runQueued(
-                    jobQueue,
-                    `populate_extract_ch${chapter.index + 1}_ck${chunkIdx + 1}`,
-                    5,
-                    () =>
-                        aiService.generateCompletion(
-                            buildExtractPrompt(workingFacts, chunks[chunkIdx]),
-                            { maxTokens: EXTRACT_FACTS_MAX_TOKENS, model: targetModel }
-                        )
-                );
-                const parsed = parseCompletionAsFacts(raw);
-
-                // 2. Validate and deduplicate locally against workingFacts.
-                const seen = new Set(workingFacts.map((f) => f.toLowerCase()));
-                for (const candidate of parsed) {
-                    const check = FactValidator.validate(candidate);
-                    if (!check.ok) continue;
-                    const key = check.fact.toLowerCase();
-                    if (seen.has(key)) continue;
-                    seen.add(key);
-                    candidates.push({ fact: check.fact, sourceText: chunks[chunkIdx] });
-                }
-            } catch (error) {
-                logger?.warn(
-                    `[PopulateFacts] Extract failed ch${chapter.index + 1}/chunk${chunkIdx + 1}: ${error.message}`
-                );
-            }
-
-            // 3. Batch-verify candidates against their source excerpts.
-            if (candidates.length > 0) {
-                const acceptedFacts = await batchVerifyCandidates({
-                    aiService,
-                    targetModel,
-                    jobQueue,
-                    candidates,
-                    chapterIdx: chapter.index + 1,
-                    chunkIdx: chunkIdx + 1,
-                    onProgress,
-                    logger,
-                });
-
-                for (const fact of acceptedFacts) {
-                    workingFacts.push(fact);
-                    addedCount++;
-                }
-            }
-
-            onProgress?.({
-                kind: PROGRESS.POPULATE_CHUNK_COMPLETE,
-                chapterIndex: chapter.index + 1,
-                chunkIndex: chunkIdx + 1,
-                chunkCount: chunks.length,
-            });
-        }
-
-        onProgress?.({
-            kind: PROGRESS.POPULATE_CHAPTER_COMPLETE,
-            index: chapter.index + 1,
-            total: totalChapters,
         });
     }
 
-    return { updatedFacts: workingFacts, factsMutated: addedCount > 0 };
+    if (workItems.length === 0) {
+        return { updatedFacts: workingFacts, factsMutated: false };
+    }
+
+    // Stage 1: parallel extraction. Each call goes through runQueued so the AIJobQueue's
+    // concurrency cap still throttles real GPU contention.
+    const extractionPromises = workItems.map((item) => {
+        onProgress?.({
+            kind: PROGRESS.POPULATE_CHUNK_START,
+            chapterIndex: item.chapterIndex,
+            chunkIndex: item.chunkIndex,
+            chunkCount: item.chunkCount,
+        });
+        return runQueued(
+            jobQueue,
+            `populate_extract_ch${item.chapterIndex}_ck${item.chunkIndex}`,
+            5,
+            () =>
+                aiService.generateCompletion(
+                    buildExtractPrompt(existingFacts, item.text),
+                    { maxTokens: EXTRACT_FACTS_MAX_TOKENS, model: targetModel }
+                )
+        )
+            .then((raw) => ({ item, raw, error: null }))
+            .catch((error) => ({ item, raw: null, error }))
+            .then((result) => {
+                onProgress?.({
+                    kind: PROGRESS.POPULATE_CHUNK_COMPLETE,
+                    chapterIndex: item.chapterIndex,
+                    chunkIndex: item.chunkIndex,
+                    chunkCount: item.chunkCount,
+                });
+                const remaining = chapterRemaining.get(item.chapter.index) - 1;
+                chapterRemaining.set(item.chapter.index, remaining);
+                if (remaining === 0) {
+                    onProgress?.({
+                        kind: PROGRESS.POPULATE_CHAPTER_COMPLETE,
+                        index: item.chapterIndex,
+                        total: totalChapters,
+                    });
+                }
+                return result;
+            });
+    });
+
+    const extractionResults = await Promise.all(extractionPromises);
+
+    // Stage 2: collect & globally dedupe across all chunks.
+    const seen = new Set(workingFacts.map((f) => f.toLowerCase()));
+    const allCandidates = [];
+    for (const { item, raw, error } of extractionResults) {
+        if (error) {
+            logger?.warn(
+                `[PopulateFacts] Extract failed ch${item.chapterIndex}/chunk${item.chunkIndex}: ${error.message}`
+            );
+            continue;
+        }
+        if (!raw) continue;
+        const parsed = parseCompletionAsFacts(raw);
+        for (const candidate of parsed) {
+            const check = FactValidator.validate(candidate);
+            if (!check.ok) continue;
+            const key = check.fact.toLowerCase();
+            if (seen.has(key)) continue;
+            seen.add(key);
+            allCandidates.push({ fact: check.fact, sourceText: item.text });
+        }
+    }
+
+    // Stage 3: single global verification pass with parallel batches.
+    const acceptedFacts = await batchVerifyCandidatesParallel({
+        aiService,
+        targetModel,
+        jobQueue,
+        candidates: allCandidates,
+        onProgress,
+        logger,
+    });
+
+    for (const fact of acceptedFacts) {
+        workingFacts.push(fact);
+    }
+
+    return { updatedFacts: workingFacts, factsMutated: acceptedFacts.length > 0 };
 }
 
 // ── Mode runners ───────────────────────────────────────────────────────────

@@ -13,38 +13,28 @@ import {
     buildCatalogEntries,
 } from '../domain/ModelCatalogBuilder.js';
 
+const RUNTIME_MODELS_SETTING_KEY = 'runtime_models';
+
 export class AIModelManagementService {
     static VALID_TARGETS = MODEL_ROLE_TARGETS;
 
     constructor({
-        modelManager,
+        aiService,
         runtimeModels,
         localModels,
         constrainedModels,
-        runtimeModelConfigPort,
+        infrastructureRepository,
         logger = console,
     } = {}) {
-        if (!modelManager) {
-            throw new Error('AIModelManagementService requires modelManager');
-        }
+        if (!aiService) throw new Error('AIModelManagementService requires aiService');
         this.logger = logger;
-        this.modelManager = modelManager;
+        this.aiService = aiService;
         this.runtimeModels = (runtimeModels && typeof runtimeModels === 'object')
             ? runtimeModels
             : createDefaultRuntimeModels();
         this.localModels = Array.isArray(localModels) ? localModels : [];
         this.constrainedModels = buildConstrainedModelSet(constrainedModels);
-        this.runtimeModelConfigPort = this._resolveRuntimeModelConfigPort(runtimeModelConfigPort);
-    }
-
-    _resolveRuntimeModelConfigPort(port) {
-        if (!port) return null;
-        const ok =
-            typeof port.getRuntimeModels === 'function' &&
-            typeof port.saveRuntimeModels === 'function';
-        if (ok) return port;
-        this._warn('Ignoring runtime model config port with invalid contract');
-        return null;
+        this.infrastructureRepository = infrastructureRepository || null;
     }
 
     _warn(message, error) {
@@ -57,11 +47,11 @@ export class AIModelManagementService {
     }
 
     async hydrateRuntimeModels() {
-        if (!this.runtimeModelConfigPort) return this.getActiveModels();
+        if (!this.infrastructureRepository) return this.getActiveModels();
 
         let persisted = null;
         try {
-            persisted = await this.runtimeModelConfigPort.getRuntimeModels();
+            persisted = await this.infrastructureRepository.getSetting(RUNTIME_MODELS_SETTING_KEY);
         } catch (error) {
             this._warn('Failed to hydrate persisted models', error);
         }
@@ -76,9 +66,10 @@ export class AIModelManagementService {
 
     async _persistRuntimeModels() {
         const active = this.getActiveModels();
-        if (!this.runtimeModelConfigPort) return active;
+        if (!this.infrastructureRepository) return active;
         try {
-            return await this.runtimeModelConfigPort.saveRuntimeModels(active);
+            await this.infrastructureRepository.saveSetting(RUNTIME_MODELS_SETTING_KEY, active);
+            return active;
         } catch (error) {
             this._warn('Failed to persist active models', error);
             return active;
@@ -110,18 +101,20 @@ export class AIModelManagementService {
     }
 
     async getModelCatalog() {
-        const installedModels = await this.modelManager.listInstalledModels();
+        const { installed } = await this.aiService.listModels();
         const candidates = collectCandidates({
             localModels: this.localModels,
             constrainedSet: this.constrainedModels,
             runtimeModels: this.runtimeModels,
-            installedModels,
+            installedModels: installed,
         });
-        const installedIndex = indexInstalledByNormalizedName(installedModels);
+        const installedIndex = indexInstalledByNormalizedName(installed);
         return buildCatalogEntries(candidates, installedIndex, this.constrainedModels);
     }
 
-    async getPullProgress(modelName) {
-        return this.modelManager.getPullProgress(modelName);
+    // Returns { installed, progress } so callers can co-locate catalog and pull state
+    // queries in a single round trip.
+    async getModelStatus() {
+        return this.aiService.listModels();
     }
 }

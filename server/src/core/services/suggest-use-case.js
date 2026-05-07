@@ -2,11 +2,11 @@ import crypto from 'crypto';
 import { ISuggestionService } from '../ports/ISuggestionService.js';
 
 export class SuggestionUseCase extends ISuggestionService {
-    constructor({ suggestionService, conversationRepository } = {}) {
+    constructor({ suggestionService, infrastructureRepository } = {}) {
         super();
         if (!suggestionService) throw new Error('SuggestionUseCase requires suggestionService');
         this.suggestionService = suggestionService;
-        this.conversationRepository = conversationRepository || null;
+        this.infrastructureRepository = infrastructureRepository || null;
     }
 
     getTelemetrySnapshot() {
@@ -49,10 +49,10 @@ export class SuggestionUseCase extends ISuggestionService {
     }
 
     async #persistConversation(meta, prompt, response) {
-        if (!this.conversationRepository || !meta) return;
+        if (!this.infrastructureRepository || !meta) return;
         if (!response || !String(response).trim()) return;
         try {
-            await this.conversationRepository.create({
+            await this.infrastructureRepository.createConversation({
                 userId: meta.userId,
                 interactionId: meta.interactionId,
                 role: meta.role || 'user',

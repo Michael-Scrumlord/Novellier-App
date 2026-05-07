@@ -3,6 +3,9 @@
 export const PROGRESS = Object.freeze({
     UNSUPPORTED_MODEL: 'unsupported_model',
 
+    // suggestion lifecycle
+    RAG_SEARCHING: 'rag_searching',
+
     // populate_facts: legacy sequential path (kept for backwards compat with UI)
     POPULATE_CHAPTER_START: 'populate_chapter_start',
     POPULATE_CHAPTER_COMPLETE: 'populate_chapter_complete',
