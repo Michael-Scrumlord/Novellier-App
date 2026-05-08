@@ -6,7 +6,7 @@ import { useThemeContext } from '../contexts/ThemeContext.jsx';
 
 export function ProfilePage() {
     const navigate = useNavigate();
-    const { user, token, setUser } = useAuthContext();
+    const { user, token, updateUser } = useAuthContext();
     const { theme, setTheme } = useThemeContext();
 
     if (!user) {
@@ -21,7 +21,7 @@ export function ProfilePage() {
                 theme={theme}
                 onThemeChange={setTheme}
                 onClose={() => navigate(-1)}
-                onProfileUpdate={setUser}
+                onProfileUpdate={updateUser}
             />
         </div>
     );

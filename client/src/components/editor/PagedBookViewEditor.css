@@ -14,3 +14,16 @@
 .paged-book-end-msg { text-align: center; margin-top: 5rem; }
 .paged-book-page-content { font-size: 1.1rem; line-height: 1.8; color: var(--ink); }
 .paged-book-block { margin-bottom: 1rem; }
+
+@media (max-width: 768px) {
+    .paged-book-page--right {
+        display: none;
+    }
+    .paged-book-page {
+        padding: 1rem 1.5rem;
+    }
+    .paged-book-page-content {
+        overflow-wrap: break-word;
+        word-wrap: break-word;
+    }
+}

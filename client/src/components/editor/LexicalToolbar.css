@@ -202,3 +202,8 @@
 .lexical-wrapper[data-editor-mode='light'] .brightness-slider__label {
     color: rgba(29, 29, 31, 0.6);
 }
+
+body[data-theme='aqua'] .brightness-slider__label {
+    color: var(--ink);
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}

@@ -98,7 +98,8 @@
     font-size: 0.65rem;
     font-weight: 800;
     color: rgba(255, 255, 255, 0.9);
-    background: var(--ink);
+
+    background: rgba(0, 0, 0, 0.75);
     padding: 0.2rem 0.4rem;
     border-radius: var(--radius-sm);
     letter-spacing: 0.5px;

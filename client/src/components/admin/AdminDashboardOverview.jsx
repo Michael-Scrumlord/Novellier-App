@@ -46,7 +46,20 @@ export default function AdminDashboardOverview({ token }) {
     const totalSizeBytes = Number(data?.totalSizeBytes || 0);
 
     if (!loaded) {
-        return <LoadingState message="Loading volume utilization..." />;
+        return (
+            <section className="vision-module-container">
+                <AdminPageHead
+                    crumb={['Admin', 'Overview']}
+                    title="Administrator Dashboard"
+                    desc="Storage utilization across Docker volumes used by Novellier services."
+                />
+                <div className="vision-stat-grid">
+                    <div className="surface-card vision-stat-card admin-skeleton" style={{ height: '88px' }} />
+                    <div className="surface-card vision-stat-card admin-skeleton" style={{ height: '88px' }} />
+                </div>
+                <div className="admin-skeleton" style={{ height: '300px', borderRadius: 'var(--radius-lg)' }} />
+            </section>
+        );
     }
 
     return (
