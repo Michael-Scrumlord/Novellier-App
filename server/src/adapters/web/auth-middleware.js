@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 
-export const createAuthMiddleware = ({ jwtSecret } = {}) => {
+export const createAuthMiddleware = ({ jwtSecret, tokenBlocklist } = {}) => {
     const secret = jwtSecret;
 
     return (req, res, next) => {
@@ -12,7 +12,11 @@ export const createAuthMiddleware = ({ jwtSecret } = {}) => {
         }
 
         try {
-            req.user = jwt.verify(token, secret);
+            const decoded = jwt.verify(token, secret);
+            if (tokenBlocklist && tokenBlocklist.has(token)) {
+                return res.status(401).json({ error: 'Unauthorized' });
+            }
+            req.user = decoded;
             return next();
         } catch (error) {
             return res.status(401).json({ error: 'Unauthorized' });

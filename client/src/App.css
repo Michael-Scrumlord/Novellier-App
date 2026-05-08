@@ -145,3 +145,10 @@ body {
         transform: none;
     }
 }
+
+:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.4);
+    transition: outline-offset 0.2s var(--ease-spatial), box-shadow 0.2s var(--ease-spatial);
+}

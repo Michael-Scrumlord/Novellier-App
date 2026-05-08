@@ -10,21 +10,24 @@ export function useSuggestionStream({ token, sections, activeStoryId, currentSto
     const [isSuggesting, setIsSuggesting] = useState(false);
     const [progress, setProgress] = useState(null);
     const abortRef = useRef(null);
+    const isSuggestingRef = useRef(false);
 
     const stop = useCallback(() => {
         abortRef.current?.abort();
         abortRef.current = null;
+        isSuggestingRef.current = false;
         setIsSuggesting(false);
     }, []);
 
     const request = useCallback(async ({ feedbackType, aiMode, aiPrompt, promptOverride, onStatusMessage }) => {
         if (!token) return;
-        if (isSuggesting) {
+        if (isSuggestingRef.current) {
             stop();
             onStatusMessage?.('Analysis stopped.');
             return;
         }
 
+        isSuggestingRef.current = true;
         setIsSuggesting(true);
         setAiResponse('');
         setToolEvents([]);
@@ -57,6 +60,7 @@ export function useSuggestionStream({ token, sections, activeStoryId, currentSto
             onStatusMessage?.('Analysis stopped.');
         } finally {
             abortRef.current = null;
+            isSuggestingRef.current = false;
             setIsSuggesting(false);
             if (aiMode === 'tools' && activeStoryId) {
                 storyService.get(token, activeStoryId)
@@ -64,7 +68,7 @@ export function useSuggestionStream({ token, sections, activeStoryId, currentSto
                     .catch((err) => console.error(err));
             }
         }
-    }, [token, sections, activeSectionIndex, activeStoryId, currentStory, isSuggesting, stop, syncStoryFromServer]);
+    }, [token, sections, activeSectionIndex, activeStoryId, currentStory, stop, syncStoryFromServer]);
 
     return { aiResponse, toolEvents, isSuggesting, progress, request, stop };
 }

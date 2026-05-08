@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useState } from 'react';
+import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import { FEEDBACK_OPTIONS } from '../constants/ai.js';
 
 const FEEDBACK_KEY = 'novellier_feedback_type';
@@ -27,7 +27,7 @@ export function AIProvider({ children }) {
         stream.request({ feedbackType, aiMode, aiPrompt, promptOverride, onStatusMessage }),
         [stream, feedbackType, aiMode, aiPrompt]);
 
-    const value = {
+    const value = useMemo(() => ({
         aiResponse: stream.aiResponse,
         toolEvents: stream.toolEvents,
         isSuggesting: stream.isSuggesting,
@@ -37,7 +37,11 @@ export function AIProvider({ children }) {
         feedbackType, setFeedbackType,
         requestSuggestion,
         stopSuggestion: stream.stop,
-    };
+    }), [
+        stream.aiResponse, stream.toolEvents, stream.isSuggesting, stream.progress,
+        aiPrompt, setAiPrompt, aiMode, setAiMode, feedbackType, setFeedbackType,
+        requestSuggestion, stream.stop,
+    ]);
 
     return <AIContext.Provider value={value}>{children}</AIContext.Provider>;
 }

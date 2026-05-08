@@ -35,7 +35,7 @@ export function WorkspacePage() {
         if (storyCtx.currentStory?.id !== storyId) {
             storyCtx.selectStory(found);
         }
-    }, [storyId, storyCtx.stories, storyCtx.currentStory?.id]);
+    }, [storyId, storyCtx.stories, storyCtx.currentStory?.id, storyCtx.selectStory]);
 
     const handleToggleLibrary = () => setIsLibraryCollapsed((prev) => !prev);
     const handleTogglePrompt = () => setIsPromptCollapsed((prev) => !prev);

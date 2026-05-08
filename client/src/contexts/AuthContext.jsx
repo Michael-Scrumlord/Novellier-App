@@ -49,7 +49,9 @@ export function AuthProvider({ children }) {
 
     const clearTokenOnFailure = useCallback(() => {
         setToken(null);
+        setUser(null);
         localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(USER_KEY);
     }, []);
 
     const updateUser = useCallback((newData) => {

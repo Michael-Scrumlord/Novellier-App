@@ -62,6 +62,11 @@
     transition: color 0.1s ease, font-weight 0.1s ease;
 }
 
+.lexical-input:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
 .lexical-placeholder {
     position: absolute;
     /* Tracks the page's CSS-variable margins so it aligns with real text */

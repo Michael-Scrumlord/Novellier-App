@@ -1,13 +1,15 @@
 import jwt from 'jsonwebtoken';
 
 export default class AuthController {
-    constructor({ userService, jwtSecret }) {
+    constructor({ userService, jwtSecret, jwtExpiration = '24h', tokenBlocklist }) {
         if (!userService) {
             throw new Error('AuthController requires userService');
         }
 
         this.userService = userService;
         this.jwtSecret = jwtSecret;
+        this.jwtExpiration = jwtExpiration;
+        this.tokenBlocklist = tokenBlocklist;
     }
 
     async login(req, res) {
@@ -25,7 +27,7 @@ export default class AuthController {
         const token = jwt.sign(
             { sub: user.id, username: user.username, role: user.role },
             this.jwtSecret,
-            { expiresIn: '2h' }
+            { expiresIn: this.jwtExpiration }
         );
 
         console.log(`User ${user.username} logged in, token issued. User ID: ${user.id}, Role: ${user.role}`);
@@ -47,7 +49,12 @@ export default class AuthController {
         });
     }
 
-    async logout(_req, res) {
+    async logout(req, res) {
+        const header = req.headers.authorization || '';
+        const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+        if (token && this.tokenBlocklist) {
+            this.tokenBlocklist.add(token);
+        }
         return res.json({ status: 'ok' });
     }
 }

@@ -21,19 +21,23 @@ export function EditorUIProvider({ children }) {
 
     const groupedBeats = useMemo(() => getGroupedBeats(sections), [sections]);
 
+    const value = useMemo(() => ({
+        selectedBeatIndex,
+        selectedChapterIndex,
+        editingMode,
+        setSelectedBeatIndex,
+        setSelectedChapterIndex,
+        setEditingMode,
+        activeSectionIndex,
+        groupedBeats,
+    }), [
+        selectedBeatIndex, selectedChapterIndex, editingMode,
+        setSelectedBeatIndex, setSelectedChapterIndex, setEditingMode,
+        activeSectionIndex, groupedBeats,
+    ]);
+
     return (
-        <EditorUIContext.Provider
-            value={{
-                selectedBeatIndex,
-                selectedChapterIndex,
-                editingMode,
-                setSelectedBeatIndex,
-                setSelectedChapterIndex,
-                setEditingMode,
-                activeSectionIndex,
-                groupedBeats,
-            }}
-        >
+        <EditorUIContext.Provider value={value}>
             {children}
         </EditorUIContext.Provider>
     );

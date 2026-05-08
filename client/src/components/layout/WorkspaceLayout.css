@@ -59,6 +59,14 @@
         height: auto;
         min-height: calc(100vh - 80px);
     }
+    .workspace__left-pane,
+    .workspace__center-pane,
+    .workspace__right-pane {
+        width: 100%;
+        height: auto;
+        min-height: 200px;
+        flex: none;
+    }
 }
 .spatial-sidebar {
     height: 100%;

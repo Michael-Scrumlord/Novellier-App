@@ -2,6 +2,7 @@ import { MongoClient } from 'mongodb';
 
 import AuthController from '../adapters/web/auth-controller.js';
 import { createAuthMiddleware } from '../adapters/web/auth-middleware.js';
+import { TokenBlocklist } from '../adapters/web/token-blocklist.js';
 
 import MongoUserRepository from '../adapters/persistence/mongo-user-repo.js';
 
@@ -54,6 +55,8 @@ export const buildDependencies = () => {
     const ollamaUrl = process.env.OLLAMA_URL || 'http://ollama:11434';
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) throw new Error('JWT_SECRET environment variable is required');
+    const jwtExpiration = process.env.JWT_EXPIRATION || '24h';
+    const tokenBlocklist = new TokenBlocklist();
 
     const ragConfig = buildRagConfig();
     const llmHardwareOptions = buildLlmHardwareOptions();
@@ -220,7 +223,7 @@ export const buildDependencies = () => {
     const userService = new UserService({ userRepository });
 
     // HTTP controllers
-    const authController = new AuthController({ userService, jwtSecret });
+    const authController = new AuthController({ userService, jwtSecret, jwtExpiration, tokenBlocklist });
     const userController = new UserController({ userService });
     const storyController = new StoryController({ storyService });
     const monitoringController = new MonitoringController({ monitoringService });
@@ -237,7 +240,7 @@ export const buildDependencies = () => {
     });
     const conversationController = new ConversationController({ conversationRepository: conversationStore });
 
-    const authMiddleware = createAuthMiddleware({ jwtSecret });
+    const authMiddleware = createAuthMiddleware({ jwtSecret, tokenBlocklist });
 
     return {
         authController,
