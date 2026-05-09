@@ -26,7 +26,9 @@ export class AIJobQueue {
             };
 
             if (abortSignal?.aborted) {
-                reject(new Error('Job aborted before enqueue'));
+                const err = new Error('Job aborted before enqueue');
+                err.name = 'AbortError';
+                reject(err);
                 return;
             }
 
@@ -75,7 +77,9 @@ export class AIJobQueue {
         }
 
         if (job.abortSignal?.aborted) {
-            job.reject(new Error('Job aborted'));
+            const err = new Error('Job aborted');
+            err.name = 'AbortError';
+            job.reject(err);
             this._checkpoint();
             queueMicrotask(() => this._drain());
             return;
@@ -96,39 +100,6 @@ export class AIJobQueue {
         } finally {
             this.running--;
             this._checkpoint();
-            queueMicrotask(() => this._drain());
-        }
-    }
-}
-
-// Lightweight concurrency limiter for parallel work (e.g. embeddings). No priority or abort support.
-export class ConcurrencyThrottle {
-    constructor({ concurrency = 2, logger } = {}) {
-        this.concurrency = Math.max(1, concurrency);
-        this.logger = logger || console;
-        this.running = 0;
-        this.pending = [];
-    }
-
-    run(fn) {
-        return new Promise((resolve, reject) => {
-            this.pending.push({ fn, resolve, reject });
-            this._drain();
-        });
-    }
-
-    async _drain() {
-        if (this.running >= this.concurrency) return;
-        const task = this.pending.shift();
-        if (!task) return;
-
-        this.running++;
-        try {
-            task.resolve(await task.fn());
-        } catch (error) {
-            task.reject(error);
-        } finally {
-            this.running--;
             queueMicrotask(() => this._drain());
         }
     }

@@ -108,9 +108,9 @@ function mergeValidated(candidates, existingFacts) {
 }
 
 // ── Pipeline helpers ───────────────────────────────────────────────────────
-function runQueued(jobQueue, name, priority, fn) {
+function runQueued(jobQueue, name, priority, fn, abortSignal) {
     if (!jobQueue) return fn();
-    return jobQueue.enqueue(name, fn, { priority });
+    return jobQueue.enqueue(name, fn, { priority, abortSignal });
 }
 
 function extractRelevantExcerpt(fact, sourceText, topN = 3) {
@@ -149,6 +149,7 @@ async function batchVerifyCandidatesParallel({
     candidates,
     onProgress,
     logger,
+    abortSignal,
 }) {
     if (candidates.length === 0) return [];
 
@@ -178,8 +179,9 @@ async function batchVerifyCandidatesParallel({
             () =>
                 aiService.generateCompletion(
                     buildBatchVerifyPrompt(batchItems),
-                    { maxTokens: BATCH_VERIFY_MAX_TOKENS, model: targetModel }
-                )
+                    { maxTokens: BATCH_VERIFY_MAX_TOKENS, model: targetModel, abortSignal }
+                ),
+            abortSignal
         )
             .then((raw) => ({ start, batch, raw, error: null }))
             .catch((error) => ({ start, batch, raw: null, error }));
@@ -246,6 +248,7 @@ async function thoroughChunkPipeline({
     chapters,
     onProgress,
     logger,
+    abortSignal,
 }) {
     const workingFacts = [...existingFacts];
     const totalChapters = chapters.length;
@@ -293,8 +296,9 @@ async function thoroughChunkPipeline({
             () =>
                 aiService.generateCompletion(
                     buildExtractPrompt(existingFacts, item.text),
-                    { maxTokens: EXTRACT_FACTS_MAX_TOKENS, model: targetModel }
-                )
+                    { maxTokens: EXTRACT_FACTS_MAX_TOKENS, model: targetModel, abortSignal }
+                ),
+            abortSignal
         )
             .then((raw) => ({ item, raw, error: null }))
             .catch((error) => ({ item, raw: null, error }))
@@ -350,6 +354,7 @@ async function thoroughChunkPipeline({
         candidates: allCandidates,
         onProgress,
         logger,
+        abortSignal,
     });
 
     for (const fact of acceptedFacts) {
@@ -368,6 +373,7 @@ async function runSimpleMode({
     chapterSummaries,
     onProgress,
     logger,
+    abortSignal,
 }) {
     const summariesText = (chapterSummaries || [])
         .map((c, i) => `Chapter ${i + 1} (${c.chapterTitle || 'Untitled'}): ${c.summary || ''}`)
@@ -385,8 +391,9 @@ async function runSimpleMode({
         const raw = await runQueued(jobQueue, 'populate_simple', 5, () =>
             aiService.generateCompletion(
                 buildExtractPrompt(existingFacts, summariesText.slice(0, SIMPLE_MAX_CHARS)),
-                { maxTokens: EXTRACT_FACTS_SIMPLE_MAX_TOKENS, model: targetModel }
-            )
+                { maxTokens: EXTRACT_FACTS_SIMPLE_MAX_TOKENS, model: targetModel, abortSignal }
+            ),
+            abortSignal
         );
         const candidates = parseCompletionAsFacts(raw);
         const additions = mergeValidated(candidates, existingFacts);
@@ -412,6 +419,7 @@ async function runThoroughMode({
     sections,
     onProgress,
     logger,
+    abortSignal,
 }) {
     const chapters = prepareChapters(sections);
     if (chapters.length === 0) {
@@ -419,11 +427,10 @@ async function runThoroughMode({
     }
 
     return thoroughChunkPipeline({
-        aiService, targetModel, jobQueue, existingFacts, chapters, onProgress, logger,
+        aiService, targetModel, jobQueue, existingFacts, chapters, onProgress, logger, abortSignal,
     });
 }
 
-// ── Export ─────────────────────────────────────────────────────────────────
 export async function handlePopulateFacts(args, {
     aiService,
     targetModel,
@@ -433,9 +440,10 @@ export async function handlePopulateFacts(args, {
     jobQueue,
     onProgress,
     logger,
+    abortSignal,
 }) {
     const mode = args?.mode === 'thorough' ? 'thorough' : 'simple';
-    const commonArgs = { aiService, targetModel, jobQueue, existingFacts, onProgress, logger };
+    const commonArgs = { aiService, targetModel, jobQueue, existingFacts, onProgress, logger, abortSignal };
 
     if (mode === 'thorough') {
         return runThoroughMode({ ...commonArgs, sections });

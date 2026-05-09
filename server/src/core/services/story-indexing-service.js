@@ -5,9 +5,8 @@ import { chunkText } from '../domain/TextUtils.js';
 // Consumes IVectorRepository (addContextBatch / searchContext / deleteStoryContext / updateTransport).
 // Responsible for chunking story sections and upserting them into the vector store, re-indexing on save, and cleaning up on deletion.
 export class StoryIndexingService {
-    constructor({ vectorRepository, embeddingThrottle }) {
+    constructor({ vectorRepository }) {
         this.vectorRepository = vectorRepository || null;
-        this.embeddingThrottle = embeddingThrottle || null;
     }
 
     // Schedule async indexing of story content.

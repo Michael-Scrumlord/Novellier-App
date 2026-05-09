@@ -18,7 +18,7 @@ import MonitoringController from '../adapters/web/monitoring-controller.js';
 import { StoryService } from '../core/services/story-service.js';
 import { OllamaModelCatalogService } from '../core/services/ollama-model-catalog-service.js';
 import { OllamaEndpointService } from '../core/services/ollama-endpoint-service.js';
-import { AIJobQueue, ConcurrencyThrottle } from '../core/services/ai-job-queue.js';
+import { AIJobQueue } from '../core/services/ai-job-queue.js';
 
 import LocalLLMAdapter from '../adapters/ai/local-llm-adapter.js';
 import { AISuggestionService } from '../core/services/ai-suggestion-service.js';
@@ -94,21 +94,23 @@ export const buildDependencies = () => {
         settingsStore,
     });
 
+    const streamingSemaphore = new StreamingSemaphore({
+        concurrency: Number(process.env.AI_STREAM_CONCURRENCY) || 2,
+    });
+
     const vectorRepository = new ChromaVectorRepository({
         baseUrl: process.env.CHROMA_URL || 'http://chromadb:8000',
         collectionName: process.env.CHROMA_COLLECTION || 'project_store',
         ollamaUrl,
         ragConfig,
         runtimeModels,
+        ollamaGate: streamingSemaphore,
     });
 
     // Coordination
     const pullProgressStore = new MongoPullProgressStore({
         db,
         collectionName: process.env.MONGO_PULL_PROGRESS_COLLECTION || 'pull_progress',
-    });
-    const streamingSemaphore = new StreamingSemaphore({
-        concurrency: Number(process.env.AI_STREAM_CONCURRENCY) || 2,
     });
 
     // Monitoring composite — owned by the LLM adapter so getTransportMetadata can return
@@ -145,10 +147,6 @@ export const buildDependencies = () => {
         infrastructureRepository,
     });
 
-    const embeddingThrottle = new ConcurrencyThrottle({
-        concurrency: Number(process.env.EMBEDDING_THROTTLE_CONCURRENCY) || 2,
-    });
-
     const summarizationService = new StorySummarizationService({
         aiService,
         runtimeModels,
@@ -156,7 +154,7 @@ export const buildDependencies = () => {
         jobQueue: aiJobQueue,
     });
 
-    const indexingService = new StoryIndexingService({ vectorRepository, embeddingThrottle });
+    const indexingService = new StoryIndexingService({ vectorRepository });
 
     const storyService = new StoryService({
         storyRepository,

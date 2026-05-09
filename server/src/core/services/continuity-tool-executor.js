@@ -66,6 +66,7 @@ const TOOL_HANDLERS = {
                 jobQueue: ctx.jobQueue || null,
                 onProgress: ctx.onProgress,
                 logger: ctx.logger,
+                abortSignal: ctx.abortSignal,
             });
             return { updatedFacts: result.updatedFacts, factsMutated: result.factsMutated };
         },
@@ -82,6 +83,7 @@ const TOOL_HANDLERS = {
                 jobQueue: ctx.jobQueue || null,
                 onProgress: ctx.onProgress,
                 logger: ctx.logger,
+                abortSignal: ctx.abortSignal,
             });
             return { updatedFacts: result.updatedFacts, factsMutated: result.factsMutated };
         },
@@ -161,6 +163,7 @@ export async function executeToolCalls(extractedToolCalls, {
     emitToolEvent,
     debugToolMode,
     logConversation,
+    abortSignal,
 }) {
     const canMutateFacts = Boolean(storyService && options.storyId);
     let factsMutated = false;
@@ -192,6 +195,7 @@ export async function executeToolCalls(extractedToolCalls, {
         const ctx = {
             index, toolName, args, aiOptions, options, targetModel,
             aiService: trackedAiService, jobQueue, logger, onProgress, emitToolEvent, debugToolMode,
+            abortSignal,
         };
 
         debugToolMode('tool_started', { index, toolName, canMutateFacts, arguments: args });
