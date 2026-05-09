@@ -9,10 +9,6 @@ export class SuggestionUseCase extends ISuggestionService {
         this.infrastructureRepository = infrastructureRepository || null;
     }
 
-    getTelemetrySnapshot() {
-        return this.suggestionService.getTelemetrySnapshot();
-    }
-
     async getSuggestion(storyText, options = {}) {
         const originalOnChunk = options.onChunk;
 

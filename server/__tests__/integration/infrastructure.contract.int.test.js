@@ -36,7 +36,4 @@ describe('Infrastructure', () => {
         expect(envExample).toContain('OLLAMA_URL=');
         expect(envExample).toContain('JWT_SECRET=');
     });
-
-    it.todo('initiates manual smoke check: docker-compose up --build starts services');
-    it.todo('initiates manual smoke check: docker-compose logs is accessible');
 });

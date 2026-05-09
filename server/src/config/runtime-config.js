@@ -28,12 +28,12 @@ export function buildRagConfig() {
     const cpuCores = os.cpus().length;
 
     if (totalMemoryGB >= 16 && cpuCores >= 8) {
-        return { contextChunks: 5, maxContextTokens: 2000, batchSize: 10 };
+        return { contextChunks: 5, maxContextTokens: 2000 };
     }
     if (totalMemoryGB >= 8 && cpuCores >= 4) {
-        return { contextChunks: 3, maxContextTokens: 1000, batchSize: 5 };
+        return { contextChunks: 3, maxContextTokens: 1000 };
     }
-    return { contextChunks: 2, maxContextTokens: 500, batchSize: 3 };
+    return { contextChunks: 2, maxContextTokens: 500 };
 }
 
 export function buildLlmHardwareOptions() {

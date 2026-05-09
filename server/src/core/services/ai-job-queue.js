@@ -38,14 +38,6 @@ export class AIJobQueue {
         });
     }
 
-    snapshot() {
-        return {
-            running: this.running,
-            pending: this.pending.length,
-            pendingNames: this.pending.map((j) => j.name),
-        };
-    }
-
     _insert(job) {
         const idx = this.pending.findIndex((p) => p.priority > job.priority);
         if (idx === -1) this.pending.push(job);

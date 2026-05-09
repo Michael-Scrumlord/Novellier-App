@@ -4,8 +4,4 @@ export class ISuggestionService {
     async getSuggestion(storyText, options = {}) {
         throw new Error('Not implemented');
     }
-
-    getTelemetrySnapshot() {
-        throw new Error('Not implemented');
-    }
 }
