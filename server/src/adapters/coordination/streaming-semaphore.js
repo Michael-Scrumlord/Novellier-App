@@ -1,13 +1,8 @@
 export class StreamingSemaphore {
-    constructor({ concurrency = 2, logger } = {}) {
+    constructor({ concurrency = 2 } = {}) {
         this.concurrency = Math.max(1, Number(concurrency) || 1);
-        this.logger = logger || console;
         this.inUse = 0;
         this.waiters = [];
-    }
-
-    snapshot() {
-        return { inUse: this.inUse, waiting: this.waiters.length, concurrency: this.concurrency };
     }
 
     async acquire(abortSignal) {

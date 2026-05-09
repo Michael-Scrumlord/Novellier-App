@@ -3,12 +3,7 @@ import { CONTINUITY_TOOL_SPECS } from '../domain/ContinuityToolSpecs.js';
 import { PROGRESS } from '../domain/ToolProgressEvents.js';
 import { richTextToPlainText } from '../domain/RichText.js';
 import { clipText } from '../domain/TextUtils.js';
-import {
-    createToolEvent,
-    executeToolCalls,
-    getToolArguments,
-    getToolName,
-} from './continuity-tool-executor.js';
+import { executeToolCalls } from './continuity-tool-executor.js';
 
 const TOOL_MODE = 'tools';
 const TOOL_ERROR_RESPONSE =
@@ -29,11 +24,6 @@ function extractNativeToolCalls(result) {
     if (typeof result !== 'object' || result === null) return null;
     const calls = Array.isArray(result.toolCalls) ? result.toolCalls : null;
     return calls?.length ? calls : null;
-}
-
-function extractContent(result) {
-    if (typeof result === 'string') return result;
-    return result?.content || '';
 }
 
 export class AISuggestionService extends ISuggestionService {

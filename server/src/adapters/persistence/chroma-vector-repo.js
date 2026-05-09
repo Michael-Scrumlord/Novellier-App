@@ -20,7 +20,7 @@ export default class ChromaVectorRepository extends IVectorRepository {
         this.ollamaUrl = ollamaUrl;
         this.collectionId = null;
         this.embeddingModel = embeddingModel;
-        this.ragConfig = ragConfig || { contextChunks: 3, maxContextTokens: 1000, batchSize: 5 };
+        this.ragConfig = ragConfig || { contextChunks: 3, maxContextTokens: 1000 };
         this.runtimeModels = runtimeModels || null;
         this.ollamaGate = ollamaGate;
     }
@@ -172,38 +172,6 @@ export default class ChromaVectorRepository extends IVectorRepository {
         }
 
         return flat;
-    }
-
-    async addContext(id, text, metadata = {}, { alreadyNormalized = false } = {}) {
-        try {
-            const collectionId = await this.getCollectionId();
-            const collectionUrl = `${this.baseUrl}/api/v1/collections/${collectionId}`;
-            const normalizedText = alreadyNormalized ? text : richTextToPlainText(text);
-
-            if (!normalizedText) {
-                return false;
-            }
-
-            const embedding = await this.generateEmbedding(normalizedText, { alreadyNormalized: true });
-
-            await this._post(`${collectionUrl}/upsert`, {
-                ids: [id],
-                documents: [normalizedText],
-                embeddings: [embedding],
-                metadatas: [
-                    {
-                        storyId: metadata.storyId || 'unknown',
-                        timestamp: metadata.timestamp || new Date().toISOString(),
-                        ...metadata,
-                    },
-                ],
-            });
-
-            return true;
-        } catch (error) {
-            console.error('[RAG] ChromaDB add error:', error.message);
-            return false;
-        }
     }
 
     // Batch upsert. items: [{ id, text, metadata, alreadyNormalized? }].
