@@ -24,18 +24,14 @@ export class StoryService {
 
         const normalizedContent = hasContent ? content : buildContentFromSections(sections);
 
-        // Summaries are generated at write time so read paths stay sort of lightweight.
-        await this.summarizationService?.ensureSummaryModelReady();
-        const summaries = this.summarizationService
-            ? await this.summarizationService.buildStorySummaries(title, sections)
-            : {};
-
         const story = await this.storyRepository.createStory({
             ...data,
             content: normalizedContent,
-            ...summaries,
         });
 
+        if (hasSections) {
+            this._scheduleSummarization(story.id, title, sections);
+        }
         this.indexingService?.triggerIndexing(story.id, data);
         return story;
     }
@@ -44,30 +40,29 @@ export class StoryService {
         const story = await this._getStoryAndVerifyAccess(id, userId, userRole);
         const updatePayload = { ...updates };
 
-        if (Array.isArray(updates.sections)) {
-            if (updates.content === undefined) {
-                updatePayload.content = buildContentFromSections(updates.sections);
-            }
-
-            await this.summarizationService?.ensureSummaryModelReady();
-
-            if (this.summarizationService) {
-                const { chapterSummaries, beatSummaries, storySummary } =
-                    await this.summarizationService.buildStorySummaries(
-                        updates.title || story.title,
-                        updates.sections
-                    );
-                Object.assign(updatePayload, { chapterSummaries, beatSummaries, storySummary });
-            }
+        if (Array.isArray(updates.sections) && updates.content === undefined) {
+            updatePayload.content = buildContentFromSections(updates.sections);
         }
 
         const updatedStory = await this.storyRepository.updateStory(id, updatePayload);
 
+        if (Array.isArray(updates.sections)) {
+            this._scheduleSummarization(id, updates.title || story.title, updates.sections);
+        }
         if (updates.content !== undefined || Array.isArray(updates.sections)) {
             this.indexingService?.triggerIndexing(id, { ...story, ...updates });
         }
 
         return updatedStory;
+    }
+
+    _scheduleSummarization(storyId, title, sections) {
+        if (!this.summarizationService) return;
+        Promise.resolve()
+            .then(() => this.summarizationService.ensureSummaryModelReady())
+            .then(() => this.summarizationService.buildStorySummaries(title, sections))
+            .then((summaries) => this.storyRepository.updateStory(storyId, summaries))
+            .catch((err) => console.error('[StoryService] Summarization failed:', err.message));
     }
 
     async deleteStory(id, userId, userRole) {

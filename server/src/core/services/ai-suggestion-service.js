@@ -162,6 +162,7 @@ export class AISuggestionService extends ISuggestionService {
             debugToolMode: (msg, meta) =>
                 options.mode === TOOL_MODE && this.logger.log(`[ToolDebug] ${msg} ${JSON.stringify(meta)}`),
             logConversation: options.logConversation,
+            abortSignal: options.abortSignal,
         });
 
         if (executionResult.factsMutated && executionResult.canMutateFacts && this.storyFactsPort) {

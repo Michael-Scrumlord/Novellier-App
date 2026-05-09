@@ -128,29 +128,36 @@ export class LocalAIService extends IAIService {
         const temperature = Number(options.temperature || this.defaultTemperature);
         const numPredict = Number(options.maxTokens || this.defaultNumPredict);
 
-        try {
-            const res = await this.transport._post(
-                '/api/generate',
-                {
-                    model,
-                    prompt,
-                    stream: false,
-                    keep_alive: KEEP_ALIVE,
-                    options: { temperature, num_predict: numPredict, ...this.hardwareOptions },
-                },
-                { signal: options.abortSignal, timeoutMs: TIMEOUTS.GENERATE }
-            );
-            const data = await res.json();
-            const content = data?.response;
-            if (!content) throw new Error('Unexpected local LLM response');
-            return content;
-        } catch (error) {
-            if (error.name === 'AbortError' || error.name === 'TimeoutError') {
-                if (options.abortSignal?.aborted) throw new Error('Request aborted');
-                throw new Error(`Model ${model} failed to respond within ${TIMEOUTS.GENERATE / 1000} seconds. Please try again or use a different model.`);
+        const run = async () => {
+            try {
+                const res = await this.transport._post(
+                    '/api/generate',
+                    {
+                        model,
+                        prompt,
+                        stream: false,
+                        keep_alive: KEEP_ALIVE,
+                        options: { temperature, num_predict: numPredict, ...this.hardwareOptions },
+                    },
+                    { signal: options.abortSignal, timeoutMs: TIMEOUTS.GENERATE }
+                );
+                const data = await res.json();
+                const content = data?.response;
+                if (!content) throw new Error('Unexpected local LLM response');
+                return content;
+            } catch (error) {
+                if (error.name === 'AbortError' || error.name === 'TimeoutError') {
+                    if (options.abortSignal?.aborted) throw new Error('Request aborted');
+                    throw new Error(`Model ${model} failed to respond within ${TIMEOUTS.GENERATE / 1000} seconds. Please try again or use a different model.`);
+                }
+                throw error;
             }
-            throw error;
+        };
+
+        if (this.streamingSemaphore) {
+            return this.streamingSemaphore.withPermit(options.abortSignal, run);
         }
+        return run();
     }
 
     async ensureModelAvailable(modelName) {
@@ -297,13 +304,14 @@ export class LocalAIService extends IAIService {
                     if (parsed.done) {
                         return isChat ? { content: fullResponse, toolCalls } : fullResponse;
                     }
-                } catch {
-                    // Skip invalid JSON lines.
+                } catch (err) {
+                    console.warn(`[LocalAIService] skipped malformed NDJSON line: ${err.message}`);
                 }
             }
         }
 
         if (successfulChunks === 0) throw new Error('No valid responses received from Ollama');
-        return isChat ? { content: fullResponse, toolCalls } : fullResponse;
+        // Reached only when the reader closed without a `done:true` line — surface as truncation.
+        throw new Error('Ollama stream closed before completion');
     }
 }

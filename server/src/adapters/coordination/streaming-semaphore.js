@@ -12,7 +12,9 @@ export class StreamingSemaphore {
 
     async acquire(abortSignal) {
         if (abortSignal?.aborted) {
-            throw new Error('Stream aborted before semaphore acquire');
+            const err = new Error('Stream aborted before semaphore acquire');
+            err.name = 'AbortError';
+            throw err;
         }
 
         if (this.inUse < this.concurrency) {
@@ -24,7 +26,9 @@ export class StreamingSemaphore {
             const onAbort = () => {
                 const idx = this.waiters.indexOf(waiter);
                 if (idx !== -1) this.waiters.splice(idx, 1);
-                reject(new Error('Stream aborted while waiting for semaphore'));
+                const err = new Error('Stream aborted while waiting for semaphore');
+                err.name = 'AbortError';
+                reject(err);
             };
 
             const waiter = {

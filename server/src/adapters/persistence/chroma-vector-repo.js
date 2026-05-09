@@ -12,6 +12,7 @@ export default class ChromaVectorRepository extends IVectorRepository {
         embeddingModel = 'nomic-embed-text',
         ragConfig,
         runtimeModels,
+        ollamaGate = null,
     } = {}) {
         super();
         this.baseUrl = baseUrl;
@@ -21,6 +22,7 @@ export default class ChromaVectorRepository extends IVectorRepository {
         this.embeddingModel = embeddingModel;
         this.ragConfig = ragConfig || { contextChunks: 3, maxContextTokens: 1000, batchSize: 5 };
         this.runtimeModels = runtimeModels || null;
+        this.ollamaGate = ollamaGate;
     }
 
     // IVectorRepository.updateTransport — accepts { baseUrl } pointing at the embedding host
@@ -147,30 +149,27 @@ export default class ChromaVectorRepository extends IVectorRepository {
             groups.push(plainTexts.slice(i, i + MAX_EMBED_BATCH));
         }
 
-        const results = await Promise.all(
-            groups.map((group) =>
-                this._post(
-                    `${this.ollamaUrl}/api/embed`,
-                    {
-                        model: this.runtimeModels?.embedding || this.embeddingModel,
-                        input: group,
-                    },
-                    { signal: signal || AbortSignal.timeout(60000) }
-                )
-            )
-        );
-
         const flat = [];
-        results.forEach((data, groupIdx) => {
-            const expected = groups[groupIdx].length;
+        for (const group of groups) {
+            const post = () => this._post(
+                `${this.ollamaUrl}/api/embed`,
+                {
+                    model: this.runtimeModels?.embedding || this.embeddingModel,
+                    input: group,
+                },
+                { signal: signal || AbortSignal.timeout(60000) }
+            );
+            const data = this.ollamaGate
+                ? await this.ollamaGate.withPermit(signal, post)
+                : await post();
             const embeddings = Array.isArray(data?.embeddings) ? data.embeddings : null;
-            if (!embeddings || embeddings.length !== expected) {
+            if (!embeddings || embeddings.length !== group.length) {
                 throw new Error(
-                    `Ollama /api/embed returned ${embeddings?.length ?? 0} embeddings for ${expected} inputs`
+                    `Ollama /api/embed returned ${embeddings?.length ?? 0} embeddings for ${group.length} inputs`
                 );
             }
             flat.push(...embeddings);
-        });
+        }
 
         return flat;
     }

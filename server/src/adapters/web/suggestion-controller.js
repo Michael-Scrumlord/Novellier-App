@@ -54,6 +54,10 @@ export default class SuggestionController {
         let isAborted = false;
         const abortController = new AbortController();
 
+        const keepalive = setInterval(() => {
+            if (!isAborted && !res.writableEnded) res.write(': keepalive\n\n');
+        }, 15000);
+
         res.on('close', () => {
             if (!res.writableEnded && !isAborted) {
                 isAborted = true;
@@ -157,6 +161,8 @@ export default class SuggestionController {
                 await writeFrame(`data: ${JSON.stringify({ error: 'AI Service Error', done: true })}\n\n`);
                 res.end();
             }
+        } finally {
+            clearInterval(keepalive);
         }
     }
 }
