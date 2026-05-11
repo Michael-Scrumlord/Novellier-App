@@ -252,8 +252,6 @@ export const buildDependencies = () => {
         modelManagementController,
         modelCatalogController,
         conversationController,
-        // Exposed for seeding and health checks. modelManager is no longer leaked through
-        // the bundle — admin lifecycle goes through aiService directly.
         aiService,
         pullProgressStore,
         infrastructureRepository,

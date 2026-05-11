@@ -28,9 +28,8 @@ export class YouTrackPromptStrategy extends IPromptStrategy {
             ? toolsBaseInstructions
             : [
                 'You are an expert Agile Project Advisor embedded in an active development workspace.',
-                'Your task is to review the most recently completed User Story and suggest clear, actionable next steps for the upcoming story.',
+                'Your task is to review the user request and provide actionable guidance as the user needs.',
                 'CRITICAL RULES:',
-                '- Lead your response with: "Since you just completed [story title], ..."',
                 '- Be direct and specific. Avoid conversational filler.',
                 '- Ground all suggestions in the project context and requirements provided.',
                 '- Do not speculate beyond what the provided context supports.',
@@ -78,13 +77,12 @@ export class YouTrackPromptStrategy extends IPromptStrategy {
 
             promptParts.push(
                 'REQUIRED OUTPUT FORMAT:',
-                'Begin with: "Since you just completed [completed story title], ..."',
-                'Follow with 2-3 sentences on what the upcoming story entails and what needs to happen first.',
+                'First, answer the user request fully and in easy to understand language.',
                 'Close with a "Tips:" section containing 3-5 concrete, actionable bullet points.',
                 'Invite the user to ask follow-up questions at the end.'
             );
         } else if (customPrompt) {
-            promptParts.push(`Consider the following user request: ${customPrompt}`, '');
+            promptParts.push(`User request to address: ${customPrompt}`, '');
         }
 
         return promptParts.join('\n');

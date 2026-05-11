@@ -52,20 +52,42 @@
 
 @media (max-width: 768px) {
     .workspace-layout {
-        display: flex;
-        flex-direction: column;
+        display: grid;
+        grid-template-columns: 1fr;
         padding: 1rem;
         gap: 1rem;
         height: auto;
         min-height: calc(100vh - 80px);
+        position: relative;
     }
-    .workspace__left-pane,
-    .workspace__center-pane,
-    .workspace__right-pane {
+    .workspace-layout.workspace--left-collapsed,
+    .workspace-layout.workspace--right-collapsed,
+    .workspace-layout.workspace--left-collapsed.workspace--right-collapsed {
+        grid-template-columns: 1fr;
+    }
+    .workspace__center-pane {
         width: 100%;
         height: auto;
-        min-height: 200px;
-        flex: none;
+        min-height: 60vh;
+    }
+    .workspace__right-pane {
+        display: none; /* Hide right pane on mobile to save space */
+    }
+    
+    .workspace__left-pane {
+        position: absolute;
+        top: 1rem;
+        left: 1rem;
+        bottom: 1rem;
+        width: calc(100% - 2rem);
+        max-width: 320px;
+        z-index: 50;
+        height: calc(100% - 2rem);
+        pointer-events: auto;
+    }
+
+    .workspace-layout.workspace--left-collapsed .workspace__left-pane {
+        width: 64px;
     }
 }
 .spatial-sidebar {
