@@ -9,4 +9,6 @@ export const storyService = {
         request(`/api/stories/${id}`, { method: 'PUT', token, body: payload }),
     remove: (token, id) =>
         request(`/api/stories/${id}`, { method: 'DELETE', token }),
+    getIndexStatus: (token, id) =>
+        request(`/api/stories/${id}/index-status`, { token }),
 };

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { storyService } from '../services/storyService.js';
 import { DEFAULT_SECTION } from '../lib/storyTemplates.js';
@@ -13,6 +13,26 @@ export function useStoryCrud({ token, clearTokenOnFailure, sections, setSections
     const [isSaving, setIsSaving] = useState(false);
 
     const activeStoryId = currentStory?.id ?? null;
+
+    // Latest-value ref for sections.
+    //
+    // StoryEditor.handleSave does:
+    //     flushSync(() => setSectionContentAtIndex(idx, contentRef.current));
+    //     saveStory();
+    // flushSync updates the reducer state synchronously, but the currently
+    // executing handleSave still has the OLD `saveStory` captured in its
+    // closure (useCallback only swaps the reference for the NEXT render).
+    // If saveStory reads `sections` from its closure, it sees the pre-flushSync
+    // value and the most recent edit is dropped from the save payload —
+    // server stores empty content, UI looks fine until refresh, then the text
+    // is gone. Reading from the ref bypasses the closure entirely.
+    const sectionsRef = useRef(sections);
+    sectionsRef.current = sections;
+
+    // currentStory has the same problem when patched via setCurrentStory inside
+    // the same event handler that triggers a save.
+    const currentStoryRef = useRef(currentStory);
+    currentStoryRef.current = currentStory;
 
     const loadStories = useCallback(async () => {
         if (!token) {
@@ -52,30 +72,37 @@ export function useStoryCrud({ token, clearTokenOnFailure, sections, setSections
     }, [navigate, setSections]);
 
     const saveStory = useCallback(async (onStatusMessage) => {
-        if (!token || !currentStory) return;
-        const chapterHeadingHtml = currentStory.chapterHeadingHtml;
+        if (!token) return;
+        // Read from refs, not closure — see comment above sectionsRef for why.
+        const latestStory = currentStoryRef.current;
+        const latestSections = sectionsRef.current;
+        if (!latestStory) return;
+
+        const latestStoryId = latestStory.id ?? null;
+        const chapterHeadingHtml = latestStory.chapterHeadingHtml;
         const payload = {
-            ...currentStory,
-            content: buildStoryContent(sections, chapterHeadingHtml),
-            sections,
+            ...latestStory,
+            content: buildStoryContent(latestSections, chapterHeadingHtml),
+            sections: latestSections,
         };
 
         setIsSaving(true);
         try {
-            const response = activeStoryId
-                ? await storyService.update(token, activeStoryId, payload)
+            const response = latestStoryId
+                ? await storyService.update(token, latestStoryId, payload)
                 : await storyService.create(token, payload);
-            onStatusMessage?.(activeStoryId ? 'Story updated.' : 'Story saved.');
-            if (!activeStoryId) navigate(`/workspace/${response.story.id}`);
+            onStatusMessage?.(latestStoryId ? 'Story updated.' : 'Story saved.');
+            if (!latestStoryId) navigate(`/workspace/${response.story.id}`);
 
             setCurrentStory(response.story);
             upsertStoryInList(response.story);
-        } catch {
+        } catch (err) {
+            console.error('[saveStory] failed:', err.message);
             onStatusMessage?.('Unable to save story.');
         } finally {
             setIsSaving(false);
         }
-    }, [token, currentStory, sections, activeStoryId, navigate, upsertStoryInList]);
+    }, [token, navigate, upsertStoryInList]);
 
     const deleteStory = useCallback(async (id) => {
         if (!token) return;

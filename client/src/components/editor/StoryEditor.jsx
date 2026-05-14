@@ -65,7 +65,7 @@ function ChapterMeta({ chapterLabel, badgeLabel, hint }) {
     );
 }
 
-export default function StoryEditor({ onSave, onOpenBookView }) {
+export default function StoryEditor({ onSave, onOpenBookView, saveStatus }) {
     const {
         sections,
         setSectionContentAtIndex,
@@ -167,7 +167,7 @@ export default function StoryEditor({ onSave, onOpenBookView }) {
                 <div className="story-editor__status">
                     <span className="story-editor__status-word-count">{wordCount} words</span>
                     <span className="story-editor__status-save">
-                        {isSaving ? 'Saving…' : 'Memory synced'}
+                        {isSaving ? 'Saving…' : (saveStatus || 'Memory synced')}
                     </span>
                 </div>
             </div>

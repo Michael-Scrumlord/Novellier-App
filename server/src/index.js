@@ -2,6 +2,8 @@
 // Model roles are hydrated from persisted config on boot so the app is usable without manual setup.
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import { seedDefaultAdmin } from './config/seed.js';
 import { createRoutes } from './adapters/web/routes.js';
 import { errorMiddleware } from './adapters/web/error-handling.js';
@@ -9,6 +11,19 @@ import { buildDependencies } from './config/di.js';
 import { pickSmallestModel } from './config/runtime-config.js';
 
 const PORT = process.env.PORT || 5000;
+
+// CORS allowlist comes from env. The tunnel hostname goes here; an empty list
+// means "deny all cross-origin requests" (same-origin nginx-proxied calls
+// still work because they arrive without an Origin header).
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+// Default body limit is intentionally small. Endpoints that legitimately need
+// more (story save, AI suggestion with long context) bump it inline.
+const DEFAULT_JSON_LIMIT = process.env.JSON_BODY_LIMIT || '512kb';
+const LARGE_JSON_LIMIT = process.env.LARGE_JSON_BODY_LIMIT || '10mb';
 
 async function start() {
     const deps = buildDependencies();
@@ -84,11 +99,90 @@ async function start() {
     }
 
     const app = express();
-    app.use(cors());
-    app.use(express.json({ limit: '10mb' }));
-    app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-    app.use(createRoutes(deps));
+    // Trust one proxy hop: nginx (which lives in the client container). When
+    // cloudflared is added in front of nginx, Cloudflare's edge → cloudflared
+    // → nginx is still one *trusted* hop from Express's perspective because
+    // nginx normalizes X-Forwarded-For. Update to 2 only if you put Express
+    // directly behind cloudflared without nginx.
+    app.set('trust proxy', 1);
+
+    // helmet sets a sensible default set of security headers (X-Content-Type-Options,
+    // X-DNS-Prefetch-Control, Referrer-Policy, Strict-Transport-Security, X-Frame-Options,
+    // X-Permitted-Cross-Domain-Policies, etc.). CSP and HSTS are tuned below.
+    app.use(
+        helmet({
+            contentSecurityPolicy: {
+                useDefaults: true,
+                directives: {
+                    'default-src': ["'self'"],
+                    // Cloudflare injects its beacon at the edge (Web Analytics).
+                    // Allow it here or disable Cloudflare Web Analytics in the CF dashboard.
+                    'script-src': ["'self'", 'https://static.cloudflareinsights.com'],
+                    // Lexical/React inline styles + Google Fonts stylesheet.
+                    'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+                    // Allow Google Fonts to serve the actual font files.
+                    'font-src': ["'self'", 'data:', 'https://fonts.gstatic.com'],
+                    'img-src': ["'self'", 'data:', 'blob:'],
+                    'connect-src': ["'self'"],
+                    'frame-ancestors': ["'none'"],
+                    'object-src': ["'none'"],
+                    'base-uri': ["'self'"],
+                },
+            },
+            // SSE works better without COEP set to require-corp.
+            crossOriginEmbedderPolicy: false,
+            // Two-year HSTS, includeSubDomains. preload=false until you're sure
+            // about every subdomain on novellier.dev. Cloudflare also sets HSTS
+            // at the edge; this header is the in-app defense-in-depth copy.
+            hsts: { maxAge: 63072000, includeSubDomains: true, preload: false },
+        })
+    );
+
+    // CORS allowlist. Same-origin requests (no Origin header, e.g. nginx-proxied
+    // /api/* from the browser) are always allowed. Cross-origin requests must
+    // come from a hostname listed in ALLOWED_ORIGINS.
+    app.use(
+        cors({
+            origin: (origin, cb) => {
+                if (!origin) return cb(null, true);
+                if (ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+                return cb(new Error('Origin not allowed by CORS'));
+            },
+            credentials: false, // We use bearer tokens in Authorization, not cookies.
+            maxAge: 600,
+        })
+    );
+
+    // Global rate limit. Generous default so a real user shouldn't notice it.
+    // The login route has a much tighter limit applied per-route in createRoutes.
+    const globalLimiter = rateLimit({
+        windowMs: 60 * 1000,
+        max: Number(process.env.RATE_LIMIT_GLOBAL_MAX) || 120,
+        standardHeaders: true,
+        legacyHeaders: false,
+        // Skip the health endpoint so cloudflared/uptime checks don't burn budget.
+        skip: (req) => req.path === '/health' || req.path === '/api/health',
+    });
+    app.use(globalLimiter);
+
+    // Login limiter applied at the route level so we can keep this declaration
+    // here and pass it through deps. 10 attempts per 15 minutes per IP is well
+    // above any human typing the wrong password and well below any automated
+    // credential-stuffing attempt being viable against a bcrypt-12 hash.
+    const loginLimiter = rateLimit({
+        windowMs: 15 * 60 * 1000,
+        max: Number(process.env.RATE_LIMIT_LOGIN_MAX) || 10,
+        standardHeaders: true,
+        legacyHeaders: false,
+        message: { error: 'Too many login attempts. Try again in 15 minutes.' },
+    });
+
+    // No global body parser — if we mount a 512kb parser globally, it runs
+    // before per-route largeBody parsers and rejects large story saves with 413
+    // before they ever reach the route handler. Instead every route that needs
+    // a JSON body opts in via smallBody or largeBody in createRoutes.
+    app.use(createRoutes({ ...deps, loginLimiter, smallJsonLimit: DEFAULT_JSON_LIMIT, largeJsonLimit: LARGE_JSON_LIMIT }));
     app.get('/health', (req, res) => res.json({ status: 'ok', message: 'Server is running' }));
 
     // Must be registered after all routes — Express identifies error handlers by their 4-arg signature.

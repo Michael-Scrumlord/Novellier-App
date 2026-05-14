@@ -1,6 +1,12 @@
 import bcrypt from 'bcryptjs';
 
-// This services handles user related operations such as creation, deletion, updating, and authentication. 
+// Bcrypt cost factor. 12 (~250 ms per hash on modern CPUs) is the conservative
+// default for 2026. Login frequency is low enough that the extra latency is
+// invisible to users, and combined with the per-IP login rate limiter this
+// makes online brute force economically infeasible.
+const BCRYPT_COST = Number(process.env.BCRYPT_COST) || 12;
+
+// This services handles user related operations such as creation, deletion, updating, and authentication.
 // It relies on a userRepository for data persistence and retrieval.
 
 export class UserService {
@@ -26,7 +32,7 @@ export class UserService {
             throw new Error('username and password are required');
         }
 
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const hashedPassword = await bcrypt.hash(password, BCRYPT_COST);
 
         return this.userRepository.createUser({
             username,
@@ -55,7 +61,7 @@ export class UserService {
 
         const processedUpdates = { ...updates };
         if (processedUpdates.password) {
-            processedUpdates.password = await bcrypt.hash(processedUpdates.password, 10);
+            processedUpdates.password = await bcrypt.hash(processedUpdates.password, BCRYPT_COST);
         }
 
         return this.userRepository.updateUser(id, processedUpdates);

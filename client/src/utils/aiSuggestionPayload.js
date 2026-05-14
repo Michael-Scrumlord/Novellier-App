@@ -90,7 +90,9 @@ export function buildSuggestionPayload({
         storyId: activeStoryId,
         feedbackType,
         customPrompt,
-        mode: aiMode,
+        // 'copilot' is a UI label for the Reviewer (plain-text, no tools) mode.
+        // Map it to the server's 'plain' value before sending.
+        mode: aiMode === 'copilot' ? 'plain' : aiMode,
         contextSummaries,
         storyText: plainSections[activeSectionIndex]?.content || '',
     };

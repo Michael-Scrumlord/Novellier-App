@@ -1,4 +1,5 @@
 import { PROGRESS } from '../../core/domain/ToolProgressEvents.js';
+import { SuggestSchema, validate } from './validation.js';
 
 export default class SuggestionController {
     constructor({ suggestionService, runtimeModels }) {
@@ -8,17 +9,19 @@ export default class SuggestionController {
     }
 
     async getSuggestion(req, res) {
+        const data = validate(SuggestSchema, req.body, res);
+        if (!data) return;
+
         const {
             storyText,
             sections,
             storyId,
             mode,
-            domain, // YouTrack demo — selects prompt strategy (e.g. 'youtrack'); defaults to novel
             feedbackType,
             customPrompt,
             contextSummaries,
             chapterSummaries,
-        } = req.body || {};
+        } = data;
 
         if (!storyText) {
             return res.status(400).json({ error: 'storyText is required' });
@@ -29,7 +32,6 @@ export default class SuggestionController {
             storyId,
             model: this.runtimeModels.suggestion,
             mode,
-            domain,
             feedbackType,
             customPrompt,
             contextSummaries,
@@ -47,8 +49,12 @@ export default class SuggestionController {
 
     async _streamSuggestion(req, res, storyText, options) {
         res.setHeader('Content-Type', 'text/event-stream');
-        res.setHeader('Cache-Control', 'no-cache');
+        // no-store prevents Cloudflare (and nginx) from buffering the stream.
+        // no-cache alone is not enough — Cloudflare interprets it as "revalidate"
+        // and may hold the response body until the request completes.
+        res.setHeader('Cache-Control', 'no-store');
         res.setHeader('Connection', 'keep-alive');
+        res.setHeader('X-Accel-Buffering', 'no');
 
         let fullResponse = '';
         let isAborted = false;
@@ -69,6 +75,9 @@ export default class SuggestionController {
         const writeFrame = async (frame) => {
             if (isAborted || res.writableEnded) return;
             const ok = res.write(frame);
+            // flush() is added by compression middleware; call it if present so
+            // each SSE frame is sent immediately rather than held in a gzip buffer.
+            if (typeof res.flush === 'function') res.flush();
             if (ok) return;
             await new Promise((resolve) => {
                 const onDrain = () => {

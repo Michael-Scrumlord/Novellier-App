@@ -78,7 +78,8 @@ export class AISuggestionService extends ISuggestionService {
             aiToolsSpec = CONTINUITY_TOOL_SPECS;
         }
 
-        // YouTrack demo — domain field selects the strategy; defaults to novel.
+        // The strategies map is keyed by domain; only the novel strategy ships
+        // with the server today. Any unknown domain falls back to novel.
         const strategy = this.strategies[options.domain] ?? this.strategies.novel;
         const prompt = strategy.buildPrompt({
             currentText: clippedStory,

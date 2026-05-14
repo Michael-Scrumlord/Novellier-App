@@ -1,5 +1,13 @@
 // HTTP adapter for AI model lifecycle operations. Routes through the cohesive aiService
 // adapter for all model lifecycle calls (pull/remove/status); modelManager is not injected.
+import {
+    LlmParamsSchema,
+    ModelIdSchema,
+    OllamaEndpointSchema,
+    SetActiveModelSchema,
+    validate,
+} from './validation.js';
+
 export default class ModelManagementController {
     constructor({ aiService, modelManagementService, ollamaEndpointService, llmParamsService }) {
         if (!aiService) throw new Error('ModelManagementController requires aiService');
@@ -34,9 +42,9 @@ export default class ModelManagementController {
 
     async ensureModel(req, res) {
         try {
-            const { model } = req.body || {};
-            if (!model) return res.status(400).json({ error: 'model is required' });
-
+            const data = validate(ModelIdSchema, req.body, res);
+            if (!data) return;
+            const { model } = data;
             const result = await this.aiService.ensureModelAvailable(model);
             return res.json({ status: result?.status || 'ready', model });
         } catch (error) {
@@ -47,8 +55,9 @@ export default class ModelManagementController {
 
     async pullModel(req, res) {
         try {
-            const { model } = req.body || {};
-            if (!model) return res.status(400).json({ error: 'model is required' });
+            const data = validate(ModelIdSchema, req.body, res);
+            if (!data) return;
+            const { model } = data;
 
             // Pull runs asynchronously; clients observe progress via /pull-progress polling.
             this.aiService.pullModel(model).catch((error) => {
@@ -64,8 +73,9 @@ export default class ModelManagementController {
 
     async removeModel(req, res) {
         try {
-            const { model } = req.body || {};
-            if (!model) return res.status(400).json({ error: 'model is required' });
+            const data = validate(ModelIdSchema, req.body, res);
+            if (!data) return;
+            const { model } = data;
 
             if (this.modelManagementService.isModelActive(model)) {
                 return res.status(409).json({
@@ -110,11 +120,13 @@ export default class ModelManagementController {
         if (!this.ollamaEndpointService) {
             return res.status(501).json({ error: 'Ollama endpoint service not configured' });
         }
-        const { url } = req.body || {};
-        if (!url) return res.status(400).json({ error: 'url is required' });
+        // SSRF guard: reject URLs that point at private/link-local/metadata
+        // addresses. The in-cluster `ollama` hostname is explicitly allowed.
+        const data = validate(OllamaEndpointSchema, req.body, res);
+        if (!data) return;
 
         try {
-            const result = await this.ollamaEndpointService.setEndpoint(url);
+            const result = await this.ollamaEndpointService.setEndpoint(data.url);
             return res.json({ status: 'ok', ...result });
         } catch (error) {
             return res.status(400).json({ error: error.message });
@@ -125,8 +137,11 @@ export default class ModelManagementController {
         if (!this.ollamaEndpointService) {
             return res.status(501).json({ error: 'Ollama endpoint service not configured' });
         }
-        const { url } = req.body || {};
-        const result = await this.ollamaEndpointService.testConnection(url);
+        // Same SSRF guard as setOllamaEndpoint — a "test connection" feature
+        // is just as much of an SSRF vector as the real "set endpoint" call.
+        const data = validate(OllamaEndpointSchema, req.body, res);
+        if (!data) return;
+        const result = await this.ollamaEndpointService.testConnection(data.url);
         return res.json(result);
     }
 
@@ -137,8 +152,10 @@ export default class ModelManagementController {
 
     async setLlmParams(req, res) {
         if (!this.llmParamsService) return res.status(501).json({ error: 'LLM params service not configured' });
+        const data = validate(LlmParamsSchema, req.body, res);
+        if (!data) return;
         try {
-            const result = await this.llmParamsService.setParams(req.body || {});
+            const result = await this.llmParamsService.setParams(data);
             return res.json({ status: 'ok', ...result });
         } catch (error) {
             return res.status(400).json({ error: error.message });
@@ -156,10 +173,9 @@ export default class ModelManagementController {
     }
 
     async setActiveModel(req, res) {
-        const { target, model } = req.body || {};
-        if (!target || !model) {
-            return res.status(400).json({ error: 'target and model are required' });
-        }
+        const data = validate(SetActiveModelSchema, req.body, res);
+        if (!data) return;
+        const { target, model } = data;
 
         try {
             const active = await this.modelManagementService.setActiveModel(target, model);

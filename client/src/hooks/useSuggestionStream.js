@@ -46,6 +46,13 @@ export function useSuggestionStream({ token, sections, activeStoryId, currentSto
             promptOverride,
         });
 
+        if (!payload.storyText) {
+            setAiResponse('This chapter has no content yet. Write something first, then request an analysis.');
+            isSuggestingRef.current = false;
+            setIsSuggesting(false);
+            return;
+        }
+
         try {
             await aiService.streamSuggestion(token, payload, {
                 onChunk: (chunk) => setAiResponse((prev) => prev + chunk),

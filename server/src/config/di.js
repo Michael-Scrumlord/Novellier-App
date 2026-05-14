@@ -2,7 +2,7 @@ import { MongoClient } from 'mongodb';
 
 import AuthController from '../adapters/web/auth-controller.js';
 import { createAuthMiddleware } from '../adapters/web/auth-middleware.js';
-import { TokenBlocklist } from '../adapters/web/token-blocklist.js';
+import { MongoTokenBlocklist } from '../adapters/web/token-blocklist.js';
 
 import MongoUserRepository from '../adapters/persistence/mongo-user-repo.js';
 
@@ -23,7 +23,6 @@ import { AIJobQueue } from '../core/services/ai-job-queue.js';
 import LocalLLMAdapter from '../adapters/ai/local-llm-adapter.js';
 import { AISuggestionService } from '../core/services/ai-suggestion-service.js';
 import { NovelPromptStrategy } from '../adapters/prompts/NovelPromptStrategy.js';
-import { YouTrackPromptStrategy } from '../adapters/prompts/YouTrackPromptStrategy.js';
 import { AIModelManagementService } from '../core/services/ai-model-management-service.js';
 import { StorySummarizationService } from '../core/services/story-summarization-service.js';
 import { StoryIndexingService } from '../core/services/story-indexing-service.js';
@@ -55,8 +54,22 @@ export const buildDependencies = () => {
     const ollamaUrl = process.env.OLLAMA_URL || 'http://ollama:11434';
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) throw new Error('JWT_SECRET environment variable is required');
+    // Reject obviously-weak secrets. A real secret should be 32+ random bytes
+    // (e.g. `openssl rand -base64 48` → 64 chars). Anything shorter or matching a
+    // known placeholder is rejected at boot so the server fails fast instead of
+    // silently running with an insecure signing key.
+    const JWT_WEAK_VALUES = new Set(['dev-secret', 'secret', 'changeme', 'password', 'test', 'test-secret']);
+    if (jwtSecret.length < 32) {
+        throw new Error(
+            'JWT_SECRET must be at least 32 characters. Generate one with: openssl rand -base64 48'
+        );
+    }
+    if (JWT_WEAK_VALUES.has(jwtSecret.toLowerCase())) {
+        throw new Error('JWT_SECRET is set to a known-weak placeholder; rotate it before starting the server');
+    }
     const jwtExpiration = process.env.JWT_EXPIRATION || '24h';
-    const tokenBlocklist = new TokenBlocklist();
+    // Persistent token blocklist — survives restarts via Mongo TTL collection.
+    // Instantiated after `db` is built below; declared here for hoisting clarity.
 
     const ragConfig = buildRagConfig();
     const llmHardwareOptions = buildLlmHardwareOptions();
@@ -70,6 +83,8 @@ export const buildDependencies = () => {
     // Persistence
     const mongoClient = new MongoClient(mongoUrl);
     const db = mongoClient.db(mongoDb);
+
+    const tokenBlocklist = new MongoTokenBlocklist({ db });
 
     const storyRepository = new MongoStoryRepository({
         db,
@@ -164,7 +179,6 @@ export const buildDependencies = () => {
 
     const strategies = {
         novel: new NovelPromptStrategy(),
-        youtrack: new YouTrackPromptStrategy(),
     };
 
     const aiSuggestionService = new AISuggestionService({
@@ -223,7 +237,7 @@ export const buildDependencies = () => {
     // HTTP controllers
     const authController = new AuthController({ userService, jwtSecret, jwtExpiration, tokenBlocklist });
     const userController = new UserController({ userService });
-    const storyController = new StoryController({ storyService });
+    const storyController = new StoryController({ storyService, indexingService });
     const monitoringController = new MonitoringController({ monitoringService });
     const suggestionController = new SuggestionController({ suggestionService, runtimeModels });
     const modelManagementController = new ModelManagementController({
@@ -252,8 +266,6 @@ export const buildDependencies = () => {
         modelManagementController,
         modelCatalogController,
         conversationController,
-        // Exposed for seeding and health checks. modelManager is no longer leaked through
-        // the bundle — admin lifecycle goes through aiService directly.
         aiService,
         pullProgressStore,
         infrastructureRepository,

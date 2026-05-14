@@ -2,6 +2,8 @@
 // It defines methods for listing users, retrieving a single user, creating a new user, updating an existing user, and deleting a user.
 // Each method interacts with the userService to perform the necessary operations and sends back an appropriate JSON response.
 
+import { CreateUserSchema, UpdateUserSchema, validate } from './validation.js';
+
 export default class UserController {
     constructor({ userService }) {
         if (!userService) {
@@ -25,23 +27,16 @@ export default class UserController {
     }
 
     async createUser(req, res) {
-        const { username, password, role, firstName, lastName, email, profilePicture, uuid } =
-            req.body || {};
-        const user = await this.userService.createUser({
-            username,
-            password,
-            role,
-            firstName,
-            lastName,
-            email,
-            profilePicture,
-            uuid,
-        });
+        const data = validate(CreateUserSchema, req.body, res);
+        if (!data) return;
+        const user = await this.userService.createUser(data);
         return res.status(201).json({ user });
     }
 
     async updateUser(req, res) {
-        const user = await this.userService.updateUser(req.params.id, req.body || {});
+        const data = validate(UpdateUserSchema, req.body, res);
+        if (!data) return;
+        const user = await this.userService.updateUser(req.params.id, data);
         return res.json({ user });
     }
 

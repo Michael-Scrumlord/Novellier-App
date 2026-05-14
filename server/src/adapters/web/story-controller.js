@@ -1,12 +1,15 @@
 // The story controller handles HTTP requests related to story management.
 
+import { CreateStorySchema, UpdateStorySchema, validate } from './validation.js';
+
 export default class StoryController {
-    constructor({ storyService }) {
+    constructor({ storyService, indexingService }) {
         if (!storyService) {
             throw new Error('StoryController requires storyService');
         }
 
         this.storyService = storyService;
+        this.indexingService = indexingService || null;
     }
 
     async listStories(req, res) {
@@ -25,30 +28,18 @@ export default class StoryController {
     }
 
     async createStory(req, res) {
-        const { title, titleHtml, chapterHeadingHtml, content, sections, genre, templateId } =
-            req.body || {};
+        const data = validate(CreateStorySchema, req.body, res);
+        if (!data) return;
         const { userId } = this._requestUser(req);
-        const story = await this.storyService.createStory({
-            title,
-            titleHtml,
-            chapterHeadingHtml,
-            content,
-            sections,
-            genre,
-            templateId,
-            userId,
-        });
+        const story = await this.storyService.createStory({ ...data, userId });
         return res.status(201).json({ story });
     }
 
     async updateStory(req, res) {
+        const data = validate(UpdateStorySchema, req.body, res);
+        if (!data) return;
         const { userId, userRole } = this._requestUser(req);
-        const story = await this.storyService.updateStory(
-            req.params.id,
-            req.body || {},
-            userId,
-            userRole
-        );
+        const story = await this.storyService.updateStory(req.params.id, data, userId, userRole);
         return res.json({ story });
     }
 
@@ -56,6 +47,11 @@ export default class StoryController {
         const { userId, userRole } = this._requestUser(req);
         await this.storyService.deleteStory(req.params.id, userId, userRole);
         return res.json({ status: 'deleted' });
+    }
+
+    async getIndexStatus(req, res) {
+        const status = this.indexingService?.getIndexStatus(req.params.id) ?? null;
+        return res.json({ status });
     }
 
     _requestUser(req) {
