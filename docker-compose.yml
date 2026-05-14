@@ -1,3 +1,12 @@
+# Shared logging config — caps each container's stdout to 30 MB (3 × 10 MB) so a
+# misbehaving container can't fill the disk. Referenced via the YAML alias
+# `<<: *default-logging` on every long-running service below.
+x-default-logging: &default-logging
+    driver: json-file
+    options:
+        max-size: '10m'
+        max-file: '3'
+
 networks:
     novellier-network:
         driver: bridge
@@ -10,12 +19,17 @@ services:
     # Express server that connects to ChromaDB and Ollama
     server:
         build: ./server
-        ports:
-            - '5001:5000'
+        # No host port mapping — the client (nginx) reaches the server over the
+        # Docker network at http://server:5000. Exposing the API directly to the
+        # host would bypass nginx and the future Cloudflare Tunnel.
+        # If you need direct access for local debugging, temporarily add:
+        #   ports:
+        #       - '127.0.0.1:5001:5000'
         networks:
             - novellier-network
             - docker-proxy-network
         environment:
+            - NODE_ENV=production
             - CHROMA_URL=${CHROMA_URL}
             - OLLAMA_URL=${OLLAMA_URL}
             - MONGO_URL=${MONGO_URL}
@@ -23,6 +37,13 @@ services:
             - LLM_MODEL=${LLM_MODEL}
             - EMBEDDING_MODEL=${EMBEDDING_MODEL}
             - JWT_SECRET=${JWT_SECRET}
+            - JWT_EXPIRATION=${JWT_EXPIRATION:-24h}
+            - ADMIN_PASS=${ADMIN_PASS}
+            - ADMIN_USER=${ADMIN_USER:-admin}
+            - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
+            - RATE_LIMIT_GLOBAL_MAX=${RATE_LIMIT_GLOBAL_MAX:-120}
+            - RATE_LIMIT_LOGIN_MAX=${RATE_LIMIT_LOGIN_MAX:-10}
+            - BCRYPT_COST=${BCRYPT_COST:-12}
             - COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME}
             - COMPOSE_NETWORK=${COMPOSE_NETWORK}
             - DOCKER_HOST=tcp://docker-socket-proxy:2375
@@ -44,6 +65,7 @@ services:
                 limits:
                     cpus: '1.5'
                     memory: 1g
+        logging: *default-logging
         restart: unless-stopped
 
     # Read-only Docker API proxy — exposes only the endpoints the server needs.
@@ -90,6 +112,7 @@ services:
                 limits:
                     cpus: '0.1'
                     memory: 32m
+        logging: *default-logging
         restart: unless-stopped
 
     # Frontend React app
@@ -97,8 +120,13 @@ services:
         build:
             context: ./client
             target: production
+        # Bind to loopback only — exposed to the internet via Cloudflare Tunnel,
+        # not by directly publishing 0.0.0.0:3001. cloudflared on the host can
+        # still reach 127.0.0.1:3001; outside scanners cannot.
+        # If running cloudflared as a sidecar in this compose file, drop the
+        # ports section entirely — it'll reach client over Docker DNS.
         ports:
-            - '3001:80'
+            - '127.0.0.1:3001:80'
         networks:
             - novellier-network
         profiles: ['prod']
@@ -119,6 +147,7 @@ services:
                 limits:
                     cpus: '0.5'
                     memory: 256m
+        logging: *default-logging
         restart: unless-stopped
 
     # Frontend Development React App (with hot reloading 🌶️)
@@ -128,7 +157,7 @@ services:
             target: development
         command: npm run dev -- --host 0.0.0.0 --port 5173
         ports:
-            - '5173:5173'
+            - '127.0.0.1:5173:5173'
         networks:
             - novellier-network
         profiles: ['dev']
@@ -147,11 +176,12 @@ services:
                     memory: 1g
         restart: unless-stopped
 
-    # ChromaDB vector database for storing/querying embeddings
+    # ChromaDB vector database for storing/querying embeddings.
+    # No host port mapping — ChromaDB ships with no authentication, so it must
+    # only be reachable from inside the Docker network. The server adapter
+    # talks to it via http://chromadb:8000.
     chromadb:
         image: chromadb/chroma:0.4.24
-        ports:
-            - '8001:8000'
         networks:
             - novellier-network
         healthcheck:
@@ -169,6 +199,7 @@ services:
                 limits:
                     cpus: '1.0'
                     memory: 1g
+        logging: *default-logging
         restart: unless-stopped
 
     # Ollama LLM server for hosting language models
@@ -184,8 +215,11 @@ services:
                 echo "Pulling nomic-embed-text model..."
                 ollama pull nomic-embed-text
                 wait
-        ports:
-            - '11435:11434'
+        # No host port mapping — Ollama has no authentication, so any host-bound
+        # port effectively grants anonymous access to your local LLM (compute
+        # exhaustion, model pulls, prompt injection). The server adapter reaches
+        # it via http://ollama:11434. To override the endpoint at runtime, use
+        # the Admin UI (PUT /api/admin/ollama/endpoint), not a host port.
         volumes:
             - novellier-ollama-data:/root/.ollama
         environment:
@@ -205,20 +239,32 @@ services:
                 limits:
                     cpus: '4.0'
                     memory: 8g
+        logging: *default-logging
         restart: unless-stopped
 
-    # Mongo DB for storing user data, tokens, and stories/story summaries
+    # Mongo DB for storing user data, tokens, and stories/story summaries.
+    # No host port mapping — direct DB exposure to the host (or worse, the
+    # LAN) is one of the most common ways small deployments get pwned. The
+    # server reaches Mongo via mongodb://mongodb:27017 from inside the
+    # Docker network. For local maintenance, `docker compose exec mongodb
+    # mongosh` works without exposing anything.
     mongodb:
         image: mongo:7
-        ports:
-            - '27018:27017'
         networks:
             - novellier-network
         volumes:
             - novellier-mongo-data:/data/db
+            # Mount the init scripts as read-only. Mongo runs every .js file
+            # in this directory exactly once, on the first container start
+            # against an empty data volume. See mongo-init/01-create-app-user.js
+            # for the app-scoped user setup (M1 in docs/production-ready.md).
+            - ./mongo-init:/docker-entrypoint-initdb.d:ro
         environment:
             - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USERNAME}
             - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
+            - MONGO_APP_USERNAME=${MONGO_APP_USERNAME:-novellier_app}
+            - MONGO_APP_PASSWORD=${MONGO_APP_PASSWORD}
+            - MONGO_DB=${MONGO_DB:-novellier}
         healthcheck:
             test:
                 [
@@ -234,6 +280,7 @@ services:
                 limits:
                     cpus: '1.0'
                     memory: 1g
+        logging: *default-logging
         restart: unless-stopped
 
     # YouTrack Demo Integration
@@ -243,7 +290,7 @@ services:
     youtrack:
         image: jetbrains/youtrack:2026.1.13162
         ports:
-            - '5174:8080'
+            - '127.0.0.1:5174:8080'
         networks:
             - novellier-network
         volumes:
@@ -271,7 +318,7 @@ services:
     youtrack-advisor:
         build: ./youtrack-advisor
         ports:
-            - '8090:3000'
+            - '127.0.0.1:8090:3000'
         networks:
             - novellier-network
         profiles: [youtrack]

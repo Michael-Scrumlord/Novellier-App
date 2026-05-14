@@ -36,7 +36,8 @@ export async function requestStream(path, { token, body, signal } = {}, callback
     });
 
     if (!response.ok) {
-        throw new Error(`Request failed (${response.status})`);
+        const message = await response.text().catch(() => '');
+        throw new Error(message || `Request failed (${response.status})`);
     }
 
     return parseSSEStream(response.body.getReader(), callbacks);
